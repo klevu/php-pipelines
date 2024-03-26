@@ -1,0 +1,57 @@
+{
+    "name": "klevu/php-pipelines",
+    "description": "Klevu pipeline-based conversion library",
+    "type": "library",
+    "version": "0.1.0",
+    "require": {
+        "php": "~8.1|~8.2",
+        "symfony/yaml": "^5.0|^6.0",
+        "psr/container": "^1.0|^2.0",
+        "psr/log": "^1.0|^2.0|^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "captainhook/captainhook": "^5.10",
+        "captainhook/plugin-composer": "^5.3",
+        "mrm-commerce/phpcs-security-audit": "^3.0",
+        "phpcompatibility/php-compatibility": "^9.3",
+        "phpstan/phpstan": "^1.10",
+        "slevomat/coding-standard": "~8.0"
+    },
+    "suggest": {
+        "monolog/monolog": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Klevu\\Pipelines\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Klevu\\Pipelines\\Test\\": "tests/"
+        }
+    },
+    "keywords": ["klevu", "pipelines", "data conversion"],
+    "license": ["MIT"],
+    "authors": [
+        {
+            "name": "Klevu Oy",
+            "email": "contact@klevu.com",
+            "homepage": "https://www.klevu.com"
+        }
+    ],
+    "support": {
+        "forum": "https://community.klevu.com",
+        "issues": "https://github.com/klevu/php-pipelines/issues"
+    },
+    "config": {
+        "allow-plugins": {
+            "captainhook/plugin-composer": true,
+            "php-http/discovery": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "extra": {
+        "captainhook-config": "captainhook.json"
+    }
+}

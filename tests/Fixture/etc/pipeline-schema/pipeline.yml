@@ -1,0 +1,7 @@
+stages:
+    firstStage:
+        pipeline: Stage\Extract
+        args:
+            extraction: foo
+    secondStage:
+        stages: ~

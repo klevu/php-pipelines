@@ -1,0 +1,10 @@
+pipeline: ParentPipeline
+addStages:
+    log:
+        before: ~
+        pipeline: Stage\Log
+removeStages:
+    - firstStage
+stages:
+    secondStage:
+        pipeline: TestPipeline
