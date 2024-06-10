@@ -26,6 +26,7 @@ class Iterate extends Pipeline
     use ConvertIterableToArrayTrait;
 
     final public const ARGUMENT_KEY_CONTINUE_ON_EXCEPTION = 'continueOnException';
+    final public const ARGUMENT_KEY_MAX_ITERATIONS = 'maxIterations';
 
     /**
      * @var LoggerInterface|null
@@ -35,6 +36,10 @@ class Iterate extends Pipeline
      * @var array<string, class-string[]|null>
      */
     private array $continueOnException = [];
+    /**
+     * @var int|null 
+     */
+    private ?int $maxIterations = null;
 
     /**
      * @param PipelineInterface[] $stages
@@ -64,6 +69,10 @@ class Iterate extends Pipeline
             continueOnException: $args[self::ARGUMENT_KEY_CONTINUE_ON_EXCEPTION] ?? [],
             arguments: $args,
         );
+        $this->maxIterations = $this->prepareMaxIterationsArgument(
+            maxIterations: $args[self::ARGUMENT_KEY_MAX_ITERATIONS] ?? null,
+            arguments: $args,
+        );
     }
 
     /**
@@ -84,11 +93,26 @@ class Iterate extends Pipeline
         $payload = $this->preparePayload($payload);
 
         $return = [];
+        $currentIteration = 0;
         /**
          * @var string|int $index
          * @var mixed $payloadItem
          */
         foreach ($payload as $index => $payloadItem) {
+            if (++$currentIteration > ($this->maxIterations ?? $currentIteration + 1)) {
+                $this->logger?->debug(
+                    message: 'Pipeline Iterate stage exited after max iterations reached',
+                    context: [
+                        'payloadItemIndex' => $index,
+                        'currentIteration' => $currentIteration,
+                        'maxIterations' => $this->maxIterations,
+                        'stageIdentifier' => $this->getIdentifier(),
+                    ],
+                );
+
+                break;
+            }
+
             try {
                 $return[] = parent::execute(
                     payload: $payloadItem,
@@ -286,6 +310,42 @@ class Iterate extends Pipeline
                 arguments: $arguments,
                 message: implode(', ', $errors),
             );
+        }
+
+        return $return;
+    }
+
+    /**
+     * @param mixed $maxIterations
+     * @param mixed[]|null $arguments
+     *
+     * @return int|null
+     * @throws InvalidPipelineArgumentsException
+     */
+    private function prepareMaxIterationsArgument(
+        mixed $maxIterations,
+        ?array $arguments,
+    ): ?int {
+        switch (true) {
+            case is_numeric($maxIterations):
+                $return = (int)$maxIterations;
+                break;
+
+            case null === $maxIterations:
+                $return = null;
+                break;
+
+            default:
+                throw new InvalidPipelineArgumentsException(
+                    pipelineName: $this::class,
+                    arguments: $arguments,
+                    message: sprintf(
+                        'Max Iterations argument (%s) must be int|null; Received %s',
+                        self::ARGUMENT_KEY_MAX_ITERATIONS,
+                        get_debug_type($maxIterations),
+                    ),
+                );
+                break;
         }
 
         return $return;

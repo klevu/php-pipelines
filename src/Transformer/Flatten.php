@@ -117,6 +117,8 @@ class Flatten implements TransformerInterface
         }
 
         /** @var mixed[][] $arrayData */
-        return array_merge(...$arrayData);
+        return array_merge(
+            ...array_values($arrayData),
+        );
     }
 }

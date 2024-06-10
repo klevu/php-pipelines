@@ -92,12 +92,16 @@ class FormatNumberArgumentProvider
             extractionContext: $extractionContext,
         );
 
-        if (!is_numeric($argumentValue)) {
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultDecimals;
+        }
+
+        if (!is_int($argumentValue) && !ctype_digit($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: FormatNumberTransformer::class,
                 errors: [
                     sprintf(
-                        'Decimals argument (%s) must be numeric; Received %s',
+                        'Decimals argument (%s) must be integer; Received %s',
                         self::ARGUMENT_INDEX_DECIMALS,
                         is_scalar($argumentValue)
                             ? $argumentValue
@@ -131,6 +135,10 @@ class FormatNumberArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultDecimalSeparator;
+        }
 
         if (!is_string($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
@@ -169,6 +177,10 @@ class FormatNumberArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultThousandsSeparator;
+        }
 
         if (!is_string($argumentValue)) {
             throw new InvalidTransformationArgumentsException(

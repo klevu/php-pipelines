@@ -35,17 +35,34 @@ trait ConvertIterableToArrayTrait
                 break;
 
             case $value instanceof ArgumentIterator:
-                $return = array_map(
-                    function (Argument $argument): mixed {
-                        $argumentValue = $argument->getValue();
-                        if (is_iterable($argumentValue)) {
-                            $argumentValue = $this->convertIterableToArray($argumentValue);
-                        }
+                $valueArray = $value->toArray();
+                $return = [];
+                /** @var Argument $argument */
+                foreach ($valueArray as $argument) {
+                    $argumentKey = $argument->getKey();
+                    $key = match (true) {
+                        is_integer($argumentKey),
+                        null === $argumentKey => null,
+                        is_scalar($argumentKey) => (string)$argumentKey,
+                        default => throw new \InvalidArgumentException(
+                            sprintf(
+                                'Argument key must be scalar; received %s',
+                                get_debug_type($argumentKey),
+                            ),
+                        ),
+                    };
 
-                        return $argumentValue;
-                    },
-                    $value->toArray(),
-                );
+                    $argumentValue = $argument->getValue();
+                    if (is_iterable($argumentValue)) {
+                        $argumentValue = $this->convertIterableToArray($argumentValue);
+                    }
+
+                    if (null !== $key) {
+                        $return[$key] = $argumentValue;
+                    } else {
+                        $return[] = $argumentValue;
+                    }
+                }
                 break;
 
             case method_exists($value, 'toArray'):

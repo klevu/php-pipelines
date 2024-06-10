@@ -85,6 +85,10 @@ class ToDateStringArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultFormat;
+        }
+
         if (!is_string($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: ToDateStringTransformer::class,
@@ -122,6 +126,10 @@ class ToDateStringArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultToTimezone;
+        }
 
         if (!is_string($argumentValue)) {
             throw new InvalidTransformationArgumentsException(

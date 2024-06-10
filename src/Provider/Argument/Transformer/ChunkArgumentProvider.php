@@ -76,7 +76,10 @@ class ChunkArgumentProvider
             extractionContext: $extractionContext,
         );
 
-        if (!is_numeric($argumentValue) || $argumentValue <= 0) {
+        if (
+            (!is_int($argumentValue) && !ctype_digit($argumentValue))
+            || $argumentValue <= 0
+        ) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: ChunkTransformer::class,
                 errors: [
@@ -116,6 +119,10 @@ class ChunkArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultPreserveKeys;
+        }
 
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(

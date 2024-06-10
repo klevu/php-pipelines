@@ -99,7 +99,7 @@ class Subtract implements TransformerInterface
         return $this->calcTransformer->transform(
             data: $data,
             arguments: $this->argumentIteratorFactory->create([
-                CalcArgumentProvider::ARGUMENT_INDEX_OPERATION => Operations::ADD,
+                CalcArgumentProvider::ARGUMENT_INDEX_OPERATION => Operations::SUBTRACT,
                 CalcArgumentProvider::ARGUMENT_INDEX_VALUE => $valueArgument->getValue(),
             ]),
             context: $context,

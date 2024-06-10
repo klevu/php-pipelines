@@ -192,6 +192,10 @@ class ItemArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultStrict;
+        }
+
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: FilterCompareTransformer::class,

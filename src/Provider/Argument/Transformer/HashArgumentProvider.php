@@ -85,6 +85,10 @@ class HashArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultAlgorithm;
+        }
+
         switch (true) {
             case $argumentValue instanceof Algorithms:
                 break;
@@ -159,6 +163,10 @@ class HashArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultSalt;
+        }
 
         if (!is_scalar($argumentValue)) {
             throw new InvalidTransformationArgumentsException(

@@ -48,6 +48,14 @@ class Merge implements TransformerInterface
 
         try {
             $arrayArguments = $this->convertIterableToArrayRecursive($arguments);
+
+            foreach ($arrayArguments as $arrayArgument) {
+                if (!is_iterable($arrayArgument)) {
+                    throw new \InvalidArgumentException(
+                        sprintf('Received item of type %s', get_debug_type($arrayArgument)),
+                    );
+                }
+            }
         } catch (\InvalidArgumentException $exception) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: $this::class,
@@ -59,6 +67,7 @@ class Merge implements TransformerInterface
                 ],
                 arguments: $arguments,
                 data: $data,
+                previous: $exception,
             );
         }
 

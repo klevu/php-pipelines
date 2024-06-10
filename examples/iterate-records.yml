@@ -1,0 +1,208 @@
+pipeline: Pipeline\Iterate
+args:
+    itemContextKey: currentOrder
+stages:
+    -
+        pipeline: Stage\Extract
+        args:
+            extraction: $items
+    -
+        pipeline: Pipeline\CreateRecord
+        stages:
+            items:
+                pipeline: Pipeline\Iterate
+                args:
+                    itemContextKey: currentOrderItem
+                stages:
+                    -
+                        pipeline: Pipeline\CreateRecord
+                        stages:
+                            order_id:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrder::order_number
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: ToString|Trim
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            order_line_id:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrderItem::item_id
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: ToString|Trim
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            item_name:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrderItem::product
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: ToString|Trim|StripTags
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            item_id:
+                                stages:
+                                    -
+                                        pipeline: Pipeline\Fallback
+                                        stages:
+                                            -
+                                                stages:
+                                                    -
+                                                        pipeline: Stage\Extract
+                                                        args:
+                                                            extraction: $currentOrderItem::parent_id
+                                                    -
+                                                        pipeline: Stage\Validate
+                                                        args:
+                                                            validation: IsNotEmpty
+                                                    -
+                                                        pipeline: Stage\Transform
+                                                        args:
+                                                            transformation: ToString|Append("-", $currentOrderItem::product_id)
+                                            -
+                                                stages:
+                                                    -
+                                                        pipeline: Stage\Extract
+                                                        args:
+                                                            extraction: $currentOrderItem::product_id
+                                                    -
+                                                        pipeline: Stage\Transform
+                                                        args:
+                                                            transformation: ToString
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            item_group_id:
+                                stages:
+                                    -
+                                        pipeline: Pipeline\Fallback
+                                        stages:
+                                            -
+                                                stages:
+                                                    -
+                                                        pipeline: Stage\Extract
+                                                        args:
+                                                            extraction: $currentOrderItem::parent_id
+                                                    -
+                                                        pipeline: Stage\Validate
+                                                        args:
+                                                            validation: IsNotEmpty
+                                                    -
+                                                        pipeline: Stage\Transform
+                                                        args:
+                                                            transformation: ToString
+                                            -
+                                                stages:
+                                                    -
+                                                        pipeline: Stage\Extract
+                                                        args:
+                                                            extraction: $currentOrderItem::product_id
+                                                    -
+                                                        pipeline: Stage\Transform
+                                                        args:
+                                                            transformation: ToString
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            item_variant_id:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrderItem::product_id
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: ToString
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            unit_price:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrderItem::price_incl_tax
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: FormatNumber(2, ".", "")
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsPositiveNumber
+                            currency:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrder::currency
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: # Alternative to pipe-separated string; ToString|Trim|ToUpperCase would also be valid
+                                                - ToString
+                                                - Trim
+                                                - ToUpperCase
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation:  # Alternative to pipe-separated string; IsNotEmpty|IsCurrencyCode would also be valid
+                                                - IsNotEmpty
+                                                - IsCurrencyCode
+                            units:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrderItem::quantity
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty|IsPositiveNumber
+                            ip_address:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrder::meta.ip_address
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty|IsIpAddress
+                            order_date:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $currentOrder::order_date
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: ToDateString("Y-m-d H:i:s")
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty|IsValidDate

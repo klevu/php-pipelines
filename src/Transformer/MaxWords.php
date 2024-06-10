@@ -33,19 +33,30 @@ class MaxWords implements TransformerInterface
 
     final public const ARGUMENT_INDEX_MAX_WORDS = MaxWordsArgumentProvider::ARGUMENT_INDEX_MAX_WORDS;
     final public const ARGUMENT_INDEX_TRUNCATION_STRING = MaxWordsArgumentProvider::ARGUMENT_INDEX_TRUNCATION_STRING;
+    final public const DEFAULT_MATCH_WORD_CHARACTERS = [
+        '\w', // Standard "word" characters
+        '\-', // For hyphenated words
+        '\.', // For URLs
+    ];
 
     /**
      * @var MaxWordsArgumentProvider
      */
     private readonly MaxWordsArgumentProvider $argumentProvider;
+    /**
+     * @var string[]
+     */
+    private readonly array $matchWordCharacters;
 
     /**
      * @param MaxWordsArgumentProvider|null $argumentProvider
+     * @param string[] $matchWordCharacters
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
     public function __construct(
         ?MaxWordsArgumentProvider $argumentProvider = null,
+        array $matchWordCharacters = self::DEFAULT_MATCH_WORD_CHARACTERS,
     ) {
         $container = Container::getInstance();
 
@@ -58,6 +69,17 @@ class MaxWords implements TransformerInterface
                 instance: $argumentProvider,
             );
         }
+
+        $this->matchWordCharacters = array_map(
+            static fn (mixed $matchWordCharacter): string => match (true) {
+                is_string($matchWordCharacter) => $matchWordCharacter,
+                default => throw new \InvalidArgumentException(sprintf(
+                    'Match Word Characters must be string; encountered %s',
+                    get_debug_type($matchWordCharacter),
+                )),
+            },
+            $matchWordCharacters,
+        );
     }
 
     /**
@@ -106,35 +128,40 @@ class MaxWords implements TransformerInterface
             extractionContext: $context,
         );
 
-        $allWords = preg_split(
-            pattern: '/\s/',
+        $matchWordCharacters = implode('', $this->matchWordCharacters);
+        $matches = [];
+        preg_match_all(
+            pattern: sprintf(
+                '/(([^%s]*)([%s]+))/',
+                $matchWordCharacters,
+                $matchWordCharacters,
+            ),
             subject: (string)$data,
-            limit: $maxWordsArgumentValue + 1,
-            flags: PREG_SPLIT_NO_EMPTY,
+            matches: $matches,
+            flags: PREG_SET_ORDER,
         );
-        if (false === $allWords) {
-            throw new TransformationException(
-                transformerName: $this::class,
-                errors: [
-                    sprintf(
-                        'Could not split string "%s" into individual words',
-                        (string)$data,
-                    ),
-                ],
-                arguments: $arguments,
-                data: $data,
-            );
-        }
 
         $return = implode(
-            ' ',
-            array_slice($allWords, 0, $maxWordsArgumentValue),
+            separator: '',
+            array: array_slice(
+                array_column($matches, 0),
+                0,
+                $maxWordsArgumentValue,
+            ),
         );
 
-        if ($truncationStringArgumentValue && count($allWords) > $maxWordsArgumentValue) {
-            $return .= $truncationStringArgumentValue;
+        if (count($matches) > $maxWordsArgumentValue) {
+            $appendString = $truncationStringArgumentValue;
+        } else {
+            $matches = [];
+            preg_match(
+                pattern: sprintf('/([^%s]+)$/', $matchWordCharacters),
+                subject: (string)$data,
+                matches: $matches,
+            );
+            $appendString = $matches[0] ?? '';
         }
 
-        return $return;
+        return $return . $appendString;
     }
 }

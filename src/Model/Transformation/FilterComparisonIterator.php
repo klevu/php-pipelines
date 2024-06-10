@@ -37,11 +37,11 @@ class FilterComparisonIterator implements IteratorInterface
     }
 
     /**
-     * @return FilterComparison
+     * @return FilterComparison|false
      */
-    public function current(): FilterComparison
+    public function current(): FilterComparison|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -49,6 +49,6 @@ class FilterComparisonIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof FilterComparison;
+        return $this->current() instanceof FilterComparison;
     }
 }

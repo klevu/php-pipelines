@@ -109,10 +109,10 @@ class StripTags implements TransformerInterface
         if ($stripContentForTagsArgumentValue) {
             $data = preg_replace( // phpcs:ignore Security.BadFunctions.PregReplace.PregReplaceDyn
                 pattern: sprintf(
-                    '#<(%s)[^>]*>(.|\s)*?</\1\s*>#im',
+                    '#<((%s)[^>]*)>(.|\s)*?</\2\s*>#im',
                     implode('|', array_map('preg_quote', $stripContentForTagsArgumentValue)),
                 ),
-                replacement: '',
+                replacement: '<\\1></\\1>',
                 subject: $data,
             );
 

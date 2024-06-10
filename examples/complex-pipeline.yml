@@ -1,0 +1,104 @@
+pipeline: Pipeline\Iterate
+args:
+    itemContextKey: record
+stages:
+    -
+        pipeline: Pipeline\CreateRecord
+        stages:
+            id:
+                stages:
+                    extract:
+                        pipeline: Stage\Extract
+                        args:
+                            extraction: $id
+                    transform:
+                        pipeline: Stage\Transform
+                        args:
+                            transformation: ToString
+                    validate:
+                        pipeline: Stage\Validate
+                        args:
+                            validation: IsNotEmpty
+            name:
+                stages:
+                    extract:
+                        pipeline: Pipeline\Fallback
+                        stages:
+                            name:
+                                stages:
+                                    -
+                                        pipeline: Stage\Extract
+                                        args:
+                                            extraction: $name
+                                    -
+                                        pipeline: Stage\Transform
+                                        args:
+                                            transformation: Trim
+                                    -
+                                        pipeline: Stage\Validate
+                                        args:
+                                            validation: IsNotEmpty
+                            parent_name:
+                                pipeline: Stage\Extract
+                                args:
+                                    extraction: $parent_name
+                    transform: # Consolidated transformations
+                        pipeline: Stage\Transform
+                        args:
+                            # We need multiline here to handle the colon character
+                            transformation: >
+                                Trim|Prepend("Name: ")
+                    validate:
+                        pipeline: Stage\Validate
+                        args:
+                            validation: IsNotEmpty
+            price:
+                stages:
+                    extract:
+                        pipeline: Stage\Extract
+                        args:
+                            extraction: $price
+                    prevalidate:
+                        pipeline: Stage\Validate
+                        args:
+                            validation: IsPositiveNumber
+                    transform: # Consolidated transformations; could be separate stages
+                        pipeline: Stage\Transform
+                        args:
+                            transformation: FormatNumber(2, null, "")|Prepend($currency::code, " ")
+                    postvalidate:
+                        pipeline: Stage\Validate
+                        args:
+                            validation: MatchesRegex("/^[A-Z]{3} [\d]+\.\d{2}$/")
+            email:
+                stages:
+                    -
+                        pipeline: Stage\Extract
+                        args:
+                            extraction: $customer.email
+                    -
+                        pipeline: Stage\Validate
+                        args:
+                            validation: IsEmail
+            high_value_items_count:
+                stages:
+                    extract:
+                        pipeline: Stage\Extract
+                        args:
+                            extraction: $items
+                    transform: # Consolidated transformations; could be separate stages
+                        pipeline: Stage\Transform
+                        args:
+                            transformation: FilterCompare([$value, "gte", $config::items.high_value_threshold])|Count
+            tags:
+                stages:
+                    -
+                        pipeline: Stage\Extract
+                        args:
+                            extraction: $items
+                    - # Consolidated transformation; could be separate stages
+                        pipeline: Stage\Transform
+                        args:
+                            transformation: MapProperty("tags")|Merge|Trim|Unique
+    -
+        pipeline: OutputAsJson

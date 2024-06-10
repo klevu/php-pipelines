@@ -21,19 +21,27 @@ use Psr\Container\NotFoundExceptionInterface;
 class MapPropertyArgumentProvider
 {
     final public const ARGUMENT_INDEX_ACCESSOR = 0;
+    final public const ARGUMENT_INDEX_RETURN_NULL_ON_FAILED_EXTRACTION = 1;
 
     /**
      * @var ArgumentProviderInterface
      */
     private readonly ArgumentProviderInterface $argumentProvider;
+    /**
+     * @var bool
+     */
+    private readonly bool $defaultReturnNullOnFailedExtraction;
 
     /**
      * @param ArgumentProviderInterface|null $argumentProvider
+     * @param bool $defaultReturnNullOnFailedExtraction
+     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
     public function __construct(
         ?ArgumentProviderInterface $argumentProvider = null,
+        bool $defaultReturnNullOnFailedExtraction = false,
     ) {
         $container = Container::getInstance();
 
@@ -46,6 +54,8 @@ class MapPropertyArgumentProvider
                 instance: $argumentProvider,
             );
         }
+
+        $this->defaultReturnNullOnFailedExtraction = $defaultReturnNullOnFailedExtraction;
     }
 
     /**
@@ -74,6 +84,48 @@ class MapPropertyArgumentProvider
                 errors: [
                     sprintf(
                         'Accessor argument (%s) must be string; Received %s',
+                        self::ARGUMENT_INDEX_ACCESSOR,
+                        get_debug_type($argumentValue),
+                    ),
+                ],
+                arguments: $arguments,
+                data: $extractionPayload,
+            );
+        }
+
+        return $argumentValue;
+    }
+
+    /**
+     * @param ArgumentIterator|null $arguments
+     * @param mixed|null $extractionPayload
+     * @param \ArrayAccess<string|int, mixed>|null $extractionContext
+     * @return bool
+     * @throws InvalidTransformationArgumentsException
+     */
+    public function getReturnNullOnFailedExtractionArgumentValue(
+        ?ArgumentIterator $arguments,
+        mixed $extractionPayload = null,
+        ?\ArrayAccess $extractionContext = null,
+    ): bool {
+        $argumentValue = $this->argumentProvider->getArgumentValueWithExtractionExpansion(
+            arguments: $arguments,
+            argumentKey: self::ARGUMENT_INDEX_RETURN_NULL_ON_FAILED_EXTRACTION,
+            defaultValue: $this->defaultReturnNullOnFailedExtraction,
+            extractionPayload: $extractionPayload,
+            extractionContext: $extractionContext,
+        );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultReturnNullOnFailedExtraction;
+        }
+
+        if (!is_bool($argumentValue)) {
+            throw new InvalidTransformationArgumentsException(
+                transformerName: MapPropertyTransformer::class,
+                errors: [
+                    sprintf(
+                        'Return Null On Failed Extraction argument (%s) must be null or boolean; Received %s',
                         self::ARGUMENT_INDEX_ACCESSOR,
                         get_debug_type($argumentValue),
                     ),

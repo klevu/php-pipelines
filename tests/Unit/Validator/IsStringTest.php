@@ -12,18 +12,27 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Validator;
 
-use Klevu\Pipelines\Exception\Validation\InvalidTypeValidationException;
+use Klevu\Pipelines\Model\ArgumentIterator;
 use Klevu\Pipelines\Validator\IsString;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 
+/**
+ * @method IsString initialiseTestObject()
+ */
 #[CoversClass(IsString::class)]
-class IsStringTest extends TestCase
+class IsStringTest extends AbstractValidatorTestCase
 {
     /**
-     * @return mixed[]
+     * @var string
      */
-    public static function dataProvider_testString_Success(): array
+    protected string $validatorFqcn = IsString::class;
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testValidate_Valid(): array
     {
         return [
             [null],
@@ -38,20 +47,9 @@ class IsStringTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testString_Success
+     * @return mixed[][]
      */
-    public function testValidString_WithSuccess(
-        mixed $input,
-    ): void {
-        $validator = new IsString();
-        $validator->validate($input);
-        $this->addToAssertionCount(1);
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testString_WithInvalidData(): array
+    public static function dataProvider_testValidate_InvalidType(): array
     {
         return [
             [3.12],
@@ -65,16 +63,23 @@ class IsStringTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testString_WithInvalidData
+     * @return mixed[][]
      */
-    public function testString_WithInvalidData_Exception(
-        mixed $input,
-    ): void {
-        $validator = new IsString();
-        $this->expectException(InvalidTypeValidationException::class);
-        $this->expectExceptionMessage(
-            'Invalid data type received',
-        );
-        $validator->validate($input);
+    public static function dataProvider_testValidate_InvalidData(): array
+    {
+        return [];
     }
+
+    // phpcs:disable SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+    #[Test]
+    #[TestWith([null])]
+    public function testValidate_InvalidData(
+        mixed $data,
+        ?ArgumentIterator $arguments = null,
+        ?\ArrayAccess $context = null,
+        ?string $exceptionMessage = null,
+    ): void {
+        $this->markTestSkipped();
+    }
+    // phpcs:enable SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
 }

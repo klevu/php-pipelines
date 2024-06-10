@@ -76,6 +76,10 @@ class FlattenArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultRetainKeys;
+        }
+
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: FlattenTransformer::class,

@@ -38,11 +38,11 @@ class ArgumentIterator implements IteratorInterface
     }
 
     /**
-     * @return Argument
+     * @return Argument|false
      */
-    public function current(): Argument
+    public function current(): Argument|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -50,7 +50,7 @@ class ArgumentIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof Argument;
+        return $this->current() instanceof Argument;
     }
 
     /**
@@ -64,6 +64,8 @@ class ArgumentIterator implements IteratorInterface
             static fn (Argument $argument): bool => $argument->getKey() === $key,
         );
 
-        return $matches->count() ? $matches->current() : null;
+        return ($matches->count() && $matches->current())
+            ? $matches->current()
+            : null;
     }
 }

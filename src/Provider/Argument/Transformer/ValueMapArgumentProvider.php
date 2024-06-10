@@ -194,6 +194,10 @@ class ValueMapArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultStrict;
+        }
+
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: ValueMapTransformer::class,
@@ -230,6 +234,10 @@ class ValueMapArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultCaseSensitive;
+        }
 
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(

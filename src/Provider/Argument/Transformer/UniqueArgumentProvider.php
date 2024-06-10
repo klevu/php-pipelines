@@ -21,6 +21,7 @@ use Psr\Container\NotFoundExceptionInterface;
 class UniqueArgumentProvider
 {
     final public const ARGUMENT_INDEX_STRICT = 0;
+    final public const ARGUMENT_INDEX_RETAIN_KEYS = 1;
 
     /**
      * @var ArgumentProviderInterface
@@ -30,16 +31,23 @@ class UniqueArgumentProvider
      * @var bool
      */
     private readonly bool $defaultStrict;
+    /**
+     * @var bool
+     */
+    private readonly bool $defaultRetainKeys;
 
     /**
      * @param ArgumentProviderInterface|null $argumentProvider
      * @param bool $defaultStrict
+     * @param bool $defaultRetainKeys
+     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
     public function __construct(
         ?ArgumentProviderInterface $argumentProvider = null,
         bool $defaultStrict = false,
+        bool $defaultRetainKeys = true,
     ) {
         $container = Container::getInstance();
 
@@ -54,6 +62,7 @@ class UniqueArgumentProvider
         }
 
         $this->defaultStrict = $defaultStrict;
+        $this->defaultRetainKeys = $defaultRetainKeys;
     }
 
     /**
@@ -76,6 +85,10 @@ class UniqueArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultStrict;
+        }
+
         if (!is_bool($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: UniqueTransformer::class,
@@ -83,6 +96,48 @@ class UniqueArgumentProvider
                     sprintf(
                         'Strict argument (%s) must be null or boolean; Received %s',
                         self::ARGUMENT_INDEX_STRICT,
+                        get_debug_type($argumentValue),
+                    ),
+                ],
+                arguments: $arguments,
+                data: $extractionPayload,
+            );
+        }
+
+        return $argumentValue;
+    }
+
+    /**
+     * @param ArgumentIterator|null $arguments
+     * @param mixed|null $extractionPayload
+     * @param \ArrayAccess<string|int, mixed>|null $extractionContext
+     * @return bool
+     * @throws InvalidTransformationArgumentsException
+     */
+    public function getRetainKeysArgumentValue(
+        ?ArgumentIterator $arguments,
+        mixed $extractionPayload = null,
+        ?\ArrayAccess $extractionContext = null,
+    ): bool {
+        $argumentValue = $this->argumentProvider->getArgumentValueWithExtractionExpansion(
+            arguments: $arguments,
+            argumentKey: self::ARGUMENT_INDEX_RETAIN_KEYS,
+            defaultValue: $this->defaultRetainKeys,
+            extractionPayload: $extractionPayload,
+            extractionContext: $extractionContext,
+        );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultRetainKeys;
+        }
+
+        if (!is_bool($argumentValue)) {
+            throw new InvalidTransformationArgumentsException(
+                transformerName: UniqueTransformer::class,
+                errors: [
+                    sprintf(
+                        'Retain Keys argument (%s) must be null or boolean; Received %s',
+                        self::ARGUMENT_INDEX_RETAIN_KEYS,
                         get_debug_type($argumentValue),
                     ),
                 ],

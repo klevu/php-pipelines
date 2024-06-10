@@ -94,8 +94,9 @@ class MatchesRegex implements ValidatorInterface
                 validatorName: $this::class,
                 errors: [
                     sprintf(
-                        'Regex argument (%s) is not a valid regular expression',
+                        'Regex argument (%s) is not a valid regular expression. Received "%s"',
                         MatchesRegexArgumentProvider::ARGUMENT_INDEX_REGULAR_EXPRESSION,
+                        $regularExpressionArgumentValue,
                     ),
                 ],
                 arguments: $arguments,

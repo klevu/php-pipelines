@@ -37,11 +37,11 @@ class ValueMapItemIterator implements IteratorInterface
     }
 
     /**
-     * @return ValueMapItem
+     * @return ValueMapItem|false
      */
-    public function current(): ValueMapItem
+    public function current(): ValueMapItem|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -49,6 +49,6 @@ class ValueMapItemIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof ValueMapItem;
+        return $this->current() instanceof ValueMapItem;
     }
 }

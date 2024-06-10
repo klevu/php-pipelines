@@ -53,7 +53,7 @@ class ToBoolean implements TransformerInterface
      * @throws NotFoundExceptionInterface
      */
     public function __construct(
-        ?ToBooleanArgumentProvider $argumentProvider,
+        ?ToBooleanArgumentProvider $argumentProvider = null,
         ?array $trueValuesList = null,
         ?array $falseValuesList = null,
     ) {

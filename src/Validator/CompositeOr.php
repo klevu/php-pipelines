@@ -336,6 +336,18 @@ class CompositeOr implements ValidatorInterface
                 );
         }
 
+        /** @var ValidationIterator $validations */
+        $validations = $validationArgument->getValue();
+        if (!count($validations)) {
+            throw new InvalidValidationArgumentsException(
+                validatorName: $this::class,
+                errors: [
+                    'Validations cannot be empty',
+                ],
+                arguments: $arguments,
+            );
+        }
+
         return $validationArgument;
     }
 }

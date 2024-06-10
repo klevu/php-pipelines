@@ -85,6 +85,10 @@ class TrimArgumentProvider
             extractionContext: $extractionContext,
         );
 
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultCharacters;
+        }
+
         if (!is_string($argumentValue)) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: TrimTransformer::class,
@@ -122,6 +126,10 @@ class TrimArgumentProvider
             extractionPayload: $extractionPayload,
             extractionContext: $extractionContext,
         );
+
+        if (null === $argumentValue) {
+            $argumentValue = $this->defaultPosition;
+        }
 
         switch (true) {
             case $argumentValue instanceof StringPositions:

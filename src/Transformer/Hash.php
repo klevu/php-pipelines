@@ -25,6 +25,11 @@ use Psr\Container\NotFoundExceptionInterface;
  */
 class Hash implements TransformerInterface
 {
+    use RecursiveCallTrait;
+
+    final public const ARGUMENT_INDEX_ALGORITHM = HashArgumentProvider::ARGUMENT_INDEX_ALGORITHM;
+    final public const ARGUMENT_INDEX_SALT = HashArgumentProvider::ARGUMENT_INDEX_SALT;
+
     /**
      * @var HashArgumentProvider
      */
@@ -55,15 +60,23 @@ class Hash implements TransformerInterface
      * @param mixed $data
      * @param ArgumentIterator|null $arguments
      * @param \ArrayAccess<string|int, mixed>|null $context
-     * @return string|null
+     * @return string|array<string|null>|null
      */
     public function transform(
         mixed $data,
         ?ArgumentIterator $arguments = null,
         ?\ArrayAccess $context = null,
-    ): ?string {
+    ): string|array|null {
         if (null === $data) {
             return null;
+        }
+
+        if ($this->shouldCallRecursively($data)) {
+            return $this->performRecursiveCall(
+                data: (array)$data,
+                arguments: $arguments,
+                context: $context,
+            );
         }
 
         if (!is_scalar($data)) {

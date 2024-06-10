@@ -28,6 +28,7 @@ class Unique implements TransformerInterface
     use ConvertIterableToArrayTrait;
 
     final public const ARGUMENT_INDEX_STRICT = UniqueArgumentProvider::ARGUMENT_INDEX_STRICT;
+    final public const ARGUMENT_INDEX_RETAIN_KEYS = UniqueArgumentProvider::ARGUMENT_INDEX_RETAIN_KEYS;
 
     /**
      * @var UniqueArgumentProvider
@@ -88,9 +89,35 @@ class Unique implements TransformerInterface
             extractionPayload: $data,
             extractionContext: $context,
         );
+        $retainKeysArgumentValue = $this->argumentProvider->getRetainKeysArgumentValue(
+            arguments: $arguments,
+            extractionPayload: $data,
+            extractionContext: $context,
+        );
 
-        return ($strictArgumentValue)
-            ? array_unique($arrayData, SORT_REGULAR)
-            : array_unique($arrayData, SORT_STRING);
+        $return = [];
+        foreach ($arrayData as $key => $value) {
+            foreach ($return as $compareKey => $compareValue) {
+                if ($key === $compareKey) {
+                    continue;
+                }
+
+                $exists = ($strictArgumentValue)
+                    ? $value === $compareValue
+                    : $value == $compareValue; // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedEqualOperator, Generic.Files.LineLength.TooLong
+
+                if ($exists) {
+                    continue 2;
+                }
+            }
+
+            if ($retainKeysArgumentValue) {
+                $return[$key] = $value;
+            } else {
+                $return[] = $value;
+            }
+        }
+
+        return $return;
     }
 }
