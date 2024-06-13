@@ -103,7 +103,7 @@ class ChangeCase implements TransformerInterface
         return match ($caseArgumentValue) {
             Cases::LOWERCASE => strtolower($data),
             Cases::UPPERCASE => strtoupper($data),
-            Cases::TITLECASE => ucwords($data),
+            Cases::TITLECASE => ucwords(strtolower($data)),
         };
     }
 }

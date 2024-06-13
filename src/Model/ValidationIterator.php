@@ -34,11 +34,11 @@ class ValidationIterator implements IteratorInterface
     }
 
     /**
-     * @return Validation
+     * @return Validation|false
      */
-    public function current(): Validation
+    public function current(): Validation|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -46,6 +46,6 @@ class ValidationIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof Validation;
+        return $this->current() instanceof Validation;
     }
 }

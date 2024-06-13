@@ -24,6 +24,17 @@ class IsValidDateArgumentProvider
     use ConvertIterableToArrayTrait;
 
     final public const ARGUMENT_INDEX_ALLOWED_FORMATS = 0;
+    private const DEFAULT_ALLOWED_FORMATS = [
+        'c', // eg 2024-12-31T15:19:21+00:00
+        'Y-m-d H:i:s', // eg 2024-12-31 15:19:21
+        'Y-m-d\TH:i:s.vp', // eg 2024-12-31T15:19:21.000Z
+        'Y-m-d', // eg 2024-12-31
+        'y-m-d', // eg 24-12-31
+        'm/d/Y', // eg 12/31/2024
+        'd-m-Y', // eg 31-12-2024
+        'jS F Y', // eg 1st December 2024
+        'jS M Y', // eg 1st Dec 2024
+    ];
 
     /**
      * @var ArgumentProviderInterface
@@ -42,7 +53,7 @@ class IsValidDateArgumentProvider
      */
     public function __construct(
         ?ArgumentProviderInterface $argumentProvider = null,
-        ?array $defaultAllowedFormats = null,
+        ?array $defaultAllowedFormats = self::DEFAULT_ALLOWED_FORMATS,
     ) {
         $container = Container::getInstance();
 
@@ -81,7 +92,7 @@ class IsValidDateArgumentProvider
             extractionContext: $extractionContext,
         );
 
-        switch ($argumentValue) {
+        switch (true) {
             case null === $argumentValue:
                 break;
 

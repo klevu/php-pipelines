@@ -22,6 +22,9 @@ class Chunk implements TransformerInterface
 {
     use ConvertIterableToArrayTrait;
 
+    final public const ARGUMENT_INDEX_LENGTH = ChunkArgumentProvider::ARGUMENT_INDEX_LENGTH;
+    final public const ARGUMENT_INDEX_PRESERVE_KEYS = ChunkArgumentProvider::ARGUMENT_INDEX_PRESERVE_KEYS;
+
     /**
      * @var ChunkArgumentProvider
      */

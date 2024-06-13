@@ -18,11 +18,13 @@ use Klevu\Pipelines\Model\ArgumentIterator;
  */
 class ToString implements TransformerInterface
 {
+    use RecursiveCallTrait;
+
     /**
      * @param mixed $data
      * @param ArgumentIterator|null $arguments
      * @param \ArrayAccess<string|int, mixed>|null $context
-     * @return string
+     * @return string|string[]
      * @throws TransformationException
      * @throws InvalidInputDataException
      */
@@ -30,7 +32,15 @@ class ToString implements TransformerInterface
         mixed $data,
         ?ArgumentIterator $arguments = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter, Generic.Files.LineLength.TooLong, Generic.Files.LineLength.TooLong
         ?\ArrayAccess $context = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
-    ): string {
+    ): string|array {
+        if ($this->shouldCallRecursively($data)) {
+            return $this->performRecursiveCall(
+                data: (array)$data,
+                arguments: $arguments,
+                context: $context,
+            );
+        }
+
         return match (true) {
             null === $data => '',
             is_scalar($data),

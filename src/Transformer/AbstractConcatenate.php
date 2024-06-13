@@ -14,9 +14,9 @@ use Klevu\Pipelines\Exception\Transformation\InvalidTransformationArgumentsExcep
 use Klevu\Pipelines\Exception\TransformationException;
 use Klevu\Pipelines\Model\Argument;
 use Klevu\Pipelines\Model\ArgumentIterator;
+use Klevu\Pipelines\Model\ArgumentIteratorFactory;
 use Klevu\Pipelines\Model\Extraction;
 use Klevu\Pipelines\ObjectManager\Container;
-use Klevu\Pipelines\Provider\Argument\Transformer\JoinArgumentProvider;
 use Klevu\Pipelines\Transformer\Join as JoinTransformer;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -31,6 +31,10 @@ abstract class AbstractConcatenate implements TransformerInterface
 {
     use RecursiveCallTrait;
 
+    /**
+     * @var ArgumentIteratorFactory
+     */
+    protected ArgumentIteratorFactory $argumentIteratorFactory;
     /**
      * @var JoinTransformer
      */
@@ -48,14 +52,27 @@ abstract class AbstractConcatenate implements TransformerInterface
 
     /**
      * @param JoinTransformer|null $joinTransformer
+     * @param ArgumentIteratorFactory|null $argumentIteratorFactory
+     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws InvalidClassException
      */
     public function __construct(
+        ?ArgumentIteratorFactory $argumentIteratorFactory = null,
         ?JoinTransformer $joinTransformer = null,
     ) {
         $container = Container::getInstance();
+
+        $argumentIteratorFactory ??= new ArgumentIteratorFactory();
+        try {
+            $this->argumentIteratorFactory = $argumentIteratorFactory;
+        } catch (\TypeError) {
+            throw new InvalidClassException(
+                identifier: ArgumentIteratorFactory::class,
+                instance: $argumentIteratorFactory,
+            );
+        }
 
         $joinTransformer ??= $container->get(JoinTransformer::class);
         try {
@@ -110,11 +127,8 @@ abstract class AbstractConcatenate implements TransformerInterface
                 data: $data,
                 arguments: $arguments,
             ),
-            arguments: new ArgumentIterator([
-                new Argument(
-                    value: '',
-                    key: JoinArgumentProvider::ARGUMENT_INDEX_SEPARATOR,
-                ),
+            arguments: $this->argumentIteratorFactory->create([
+                JoinTransformer::ARGUMENT_INDEX_SEPARATOR => '',
             ]),
             context: $context,
         );

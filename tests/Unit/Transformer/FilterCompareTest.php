@@ -13,14 +13,10 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Transformer;
 
-use Klevu\Pipelines\Exception\Transformation\InvalidInputDataException;
-use Klevu\Pipelines\Exception\Transformation\InvalidTransformationArgumentsException;
-use Klevu\Pipelines\Model\Argument;
 use Klevu\Pipelines\Model\ArgumentIterator;
 use Klevu\Pipelines\Model\ArgumentIteratorFactory;
 use Klevu\Pipelines\Model\Comparators;
 use Klevu\Pipelines\Model\Extraction;
-use Klevu\Pipelines\Model\IteratorInterface;
 use Klevu\Pipelines\Model\Transformation\FilterComparison;
 use Klevu\Pipelines\Pipeline\Context;
 use Klevu\Pipelines\Test\Fixture\TestIterator;
@@ -29,420 +25,767 @@ use Klevu\Pipelines\Transformer\FilterCompare;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 #[CoversClass(FilterCompare::class)]
-class FilterCompareTest extends TestCase
+class FilterCompareTest extends AbstractTransformerTestCase
 {
     /**
-     * @return mixed[]
+     * @var string
      */
-    public static function dataProvider_testTransform_Success(): array
-    {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
+    protected string $transformerFqcn = FilterCompare::class;
 
-        return [
-            [
-                null,
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: null),
-                        comparator: Comparators::EMPTY,
-                        compareValue: null,
-                    ),
-                ]),
-                null,
-                null,
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: null),
-                        comparator: Comparators::LESS_THAN,
-                        compareValue: 2,
-                    ),
-                ]),
-                new Context([]),
-                [1],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: 2,
-                        comparator: Comparators::GREATER_THAN,
-                        compareValue: new Extraction(accessor: null),
-                    ),
-                ]),
-                null,
-                [1],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: null), 'lt', 2],
-                ]),
-                null,
-                [1],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [2, 'gt', new Extraction(accessor: null)],
-                ]),
-                null,
-                [1],
-            ],
-            [
-                new TestIterator([1, 2, 3]), // no toArray()
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: null), 'lt', 2],
-                ]),
-                null,
-                [1],
-            ],
-            [
-                new TestIterator([1, 2, 3]), // no toArray()
-                $argumentIteratorFactory->create([
-                    [2, 'gt', new Extraction(accessor: null)],
-                ]),
-                null,
-                [1],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: null), 'gte', 2],
-                ]),
-                null,
-                [1 => 2, 3], // maintain key-value associations
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [2, 'lte', new Extraction(accessor: null)],
-                ]),
-                null,
-                [1 => 2, 3], // maintain key-value associations
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: null), 'lte', new Extraction(accessor: null)],
-                ]),
-                null,
-                [1, 2, 3],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: 'config::compareValue'), 'gte', new Extraction(accessor: null)],
-                ]),
-                new Context([
-                    'config' => [
-                        'compareValue' => 2,
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testTransform_Valid(): array
+    {
+        return array_merge(
+            self::dataProvider_testTransform_Valid_Array(),
+            self::dataProvider_testTransform_Valid_Iterator(),
+            self::dataProvider_testTransform_Valid_AllComparators(),
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_Array(): array
+    {
+        $testObjectPub1 = new TestObject(publicProperty: 1);
+        $testObjectPub2 = new TestObject(publicProperty: 2);
+        $testObjectPub3 = new TestObject(publicProperty: 3);
+        $testObjectPriv1 = new TestObject(privateProperty: 1);
+        $testObjectPriv2 = new TestObject(privateProperty: 2);
+        $testObjectPriv3 = new TestObject(privateProperty: 3);
+
+        $testObjectPrivFoo1 = new TestObject(privateProperty: [
+            'foo' => 1,
+        ]);
+        $testObjectPrivFoo2 = new TestObject(privateProperty: [
+            'foo' => 2,
+        ]);
+        $testObjectPrivFoo3 = new TestObject(privateProperty: [
+            'foo' => 3,
+        ]);
+
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [1, 2, 3],
+                    [
+                        [new Extraction(null), 'lt', 2],
                     ],
-                ]),
-                [1, 2],
-            ],
-            [
-                [1, 2, 3],
-                $argumentIteratorFactory->create([
-                    [new Extraction(accessor: null), 'lte', new Extraction(accessor: 'config::compareValue')],
-                ]),
-                new Context([
-                    'config' => [
-                        'compareValue' => 2,
+                    [1],
+                ],
+                [
+                    [1, 2, 3],
+                    [
+                        [2, 'gt', new Extraction(null)],
                     ],
-                ]),
-                [1, 2],
-            ],
-        ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param ArgumentIterator|null $arguments
-     * @param \ArrayAccess<int|string, mixed>|null $context
-     * @param mixed $expectedResult
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_Success')]
-    public function testTransform_Success(
-        mixed $data,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context = null,
-        mixed $expectedResult,
-    ): void {
-        $filterCompare = new FilterCompare();
-
-        $result = $filterCompare->transform(
-            data: $data,
-            arguments: $arguments,
-            context: $context,
-        );
-        $this->assertSame($expectedResult, $result);
-    }
-
-    #[Test]
-    public function testTransform_Success_MockIterator(): void
-    {
-        $filterCompare = new FilterCompare();
-
-        $result = $filterCompare->transform(
-            data: $this->getMockIterator([1, 2, 3]),
-            arguments: new ArgumentIterator([
-                new Argument(
-                    new ArgumentIterator([
-                        new Argument(
-                            new Extraction(null),
-                        ),
-                        new Argument('lt'),
-                        new Argument(2),
-                    ]),
-                ),
-            ]),
-        );
-        $this->assertSame([1], $result);
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testTransform_Success_MultipleConditions(): array
-    {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
-
-        return [
-            [
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: null),
-                        comparator: Comparators::GREATER_THAN_OR_EQUALS,
-                        compareValue: 8,
-                    ),
-                    [new Extraction(accessor: ''), 'in', [2, 4, 6]],
-                ]),
-                null,
-                [
-                    1 => 2,
-                    3 => 4,
-                    5 => 6,
-                    7 => 8,
-                    8 => 9,
-                    9 => 10,
+                    [1],
                 ],
-            ],
-            [
-                [0, false, null, 'foo'],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: null),
-                        comparator: Comparators::NOT_EMPTY,
-                        compareValue: null,
-                    ),
-                    [new Extraction(accessor: ''), 'in', [0]],
-                ]),
-                null,
-                [0, false, null, 'foo'],
-            ],
-            [
-                [0, false, null, 'foo'],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: null),
-                        comparator: Comparators::NOT_EMPTY,
-                        compareValue: null,
-                    ),
-                    [new Extraction(accessor: ''), 'in', [0], true],
-                ]),
-                null,
                 [
-                    0 => 0,
-                    3 => 'foo',
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param ArgumentIterator|null $arguments
-     * @param \ArrayAccess<int|string, mixed>|null $context
-     * @param mixed $expectedResult
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_Success_MultipleConditions')]
-    public function testTransform_Success_MultipleConditions(
-        mixed $data,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context = null,
-        mixed $expectedResult,
-    ): void {
-        $filterCompare = new FilterCompare();
-
-        $result = $filterCompare->transform(
-            data: $data,
-            arguments: $arguments,
-            context: $context,
-        );
-        $this->assertSame($expectedResult, $result);
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testTransform_Success_WithSourceAccessor(): array
-    {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
-
-        return [
-            [
-                [
-                    new TestObject(publicProperty: 1),
-                    new TestObject(publicProperty: 2),
-                    new TestObject(publicProperty: 3),
-                ],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: 'publicProperty'),
-                        comparator: Comparators::LESS_THAN,
-                        compareValue: 2,
-                    ),
-                ]),
-                null,
-                [
-                    new TestObject(publicProperty: 1),
-                ],
-            ],
-            [
-                [
-                    'foo' => new TestObject(privateProperty: [
-                        'foo' => 1,
-                    ]),
-                    'bar' => new TestObject(privateProperty: [
-                        'foo' => 2,
-                    ]),
-                    'baz' => new TestObject(privateProperty: [
-                        'foo' => 3,
-                    ]),
-                ],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: 'getPrivateProperty().foo'),
-                        comparator: Comparators::GREATER_THAN,
-                        compareValue: 2,
-                    ),
-                ]),
-                null,
-                [
-                    'baz' => new TestObject(privateProperty: [
-                        'foo' => 3,
-                    ]),
-                ],
-            ],
-            [
-                [
-                    'foo' => new TestObject(privateProperty: 1),
-                    'bar' => new TestObject(privateProperty: 2),
-                    'baz' => new TestObject(privateProperty: 3),
-                ],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: 'foo::bar'), // From context
-                        comparator: Comparators::EQUALS,
-                        compareValue: 2,
-                    ),
-                ]),
-                new Context([
-                    'foo' => [
-                        'bar' => 2,
+                    [1, 2, 3],
+                    [
+                        [new Extraction(null), 'gte', 2],
                     ],
-                ]),
+                    [ // Retain key-value associations
+                        1 => 2,
+                        2 => 3,
+                    ],
+                ],
                 [
-                    'foo' => new TestObject(privateProperty: 1),
-                    'bar' => new TestObject(privateProperty: 2),
-                    'baz' => new TestObject(privateProperty: 3),
+                    [1, 2, 3],
+                    [
+                        // OR conditions
+                        [new Extraction(null), 'lte', 2],
+                        [new Extraction(null), 'gte', 2],
+                    ],
+                    [1, 2, 3],
+                ],
+                [
+                    ['a', 'b', 'c'],
+                    [
+                        [new Extraction(null), 'eq', 'a'],
+                    ],
+                    ['a'],
+                ],
+                [
+                    [
+                        ['a'],
+                        [],
+                    ],
+                    [
+                        [new Extraction(null), 'empty', null],
+                    ],
+                    [
+                        1 => [],
+                    ],
+                ],
+                [
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    [
+                        [new Extraction(accessor: null), 'gte', 8],
+                        [new Extraction(accessor: ''), 'in', [2, 4, 6]],
+                    ],
+                    [
+                        1 => 2,
+                        3 => 4,
+                        5 => 6,
+                        7 => 8,
+                        8 => 9,
+                        9 => 10,
+                    ],
+                ],
+                [
+                    [0, false, null, 'foo'],
+                    [
+                        [new Extraction(accessor: null), 'nempty', null],
+                        [new Extraction(accessor: ''), 'in', [0]],
+                    ],
+                    [0, false, null, 'foo'],
+                ],
+                [
+                    [0, false, null, 'foo'],
+                    [
+                        [new Extraction(accessor: null), 'nempty', null],
+                        [new Extraction(accessor: ''), 'in', [0], true],
+                    ],
+                    [
+                        0 => 0,
+                        3 => 'foo',
+                    ],
+                ],
+                [
+                    [
+                        $testObjectPub1,
+                        $testObjectPub2,
+                        $testObjectPub3,
+                    ],
+                    [
+                        [new Extraction(accessor: 'publicProperty'), 'lt', 2],
+                    ],
+                    [
+                        $testObjectPub1,
+                    ],
+                ],
+                [
+                    [
+                        'foo' => $testObjectPrivFoo1,
+                        'bar' => $testObjectPrivFoo2,
+                        'baz' => $testObjectPrivFoo3,
+                    ],
+                    [
+                        [new Extraction(accessor: 'getPrivateProperty().foo'), 'gt', 2],
+                    ],
+                    [
+                        'baz' => $testObjectPrivFoo3,
+                    ],
+                ],
+                [
+                    [
+                        'foo' => $testObjectPriv1,
+                        'bar' => $testObjectPriv2,
+                        'baz' => $testObjectPriv3,
+                    ],
+                    [
+                        [new Extraction(accessor: 'foo::bar'), 'eq', 2],
+                    ],
+                    [
+                        'foo' => $testObjectPriv1,
+                        'bar' => $testObjectPriv2,
+                        'baz' => $testObjectPriv3,
+                    ],
+                    [
+                        'foo' => [
+                            'bar' => 2,
+                        ],
+                    ],
                 ],
             ],
-        ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param ArgumentIterator|null $arguments
-     * @param \ArrayAccess<int|string, mixed>|null $context
-     * @param mixed $expectedResult
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_Success_WithSourceAccessor')]
-    public function testTransform_Success_WithSourceAccessor(
-        mixed $data,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context = null,
-        mixed $expectedResult,
-    ): void {
-        $filterCompare = new FilterCompare();
-
-        $result = $filterCompare->transform(
-            data: $data,
-            arguments: $arguments,
-            context: $context,
         );
-        $this->assertEquals($expectedResult, $result);
     }
 
     /**
-     * @return mixed[]
+     * @return mixed[][]
      */
-    public static function dataProvider_testTransform_InvalidData(): array
+    private static function dataProvider_testTransform_Valid_Iterator(): array
     {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    new TestIterator([1, 2, 3]),
+                    [
+                        [new Extraction(null), 'lt', 2],
+                    ],
+                    [1],
+                ],
+                [
+                    new TestIterator([1, 2, 3]),
+                    [
+                        [2, 'gt', new Extraction(null)],
+                    ],
+                    [1],
+                ],
+                [
+                    new TestIterator([1, 2, 3]),
+                    [
+                        [new Extraction(null), 'gte', 2],
+                    ],
+                    [ // Maintain key-value associations
+                        1 => 2,
+                        2 => 3,
+                    ],
+                ],
+                [
+                    new TestIterator([1, 2, 3]),
+                    [
+                        // OR conditions
+                        [new Extraction(null), 'lte', 2],
+                        [new Extraction(null), 'gte', 2],
+                    ],
+                    [1, 2, 3],
+                ],
+                [
+                    new TestIterator([
+                        ['a'],
+                        [],
+                    ]),
+                    [
+                        [new Extraction(null), 'empty', null],
+                    ],
+                    [
+                        1 => [],
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_AllComparators(): array
+    {
+        return array_merge(
+            self::dataProvider_testTransform_Valid_Equals(),
+            self::dataProvider_testTransform_Valid_NotEquals(),
+            self::dataProvider_testTransform_Valid_GreaterThan(),
+            self::dataProvider_testTransform_Valid_GreaterThanOrEquals(),
+            self::dataProvider_testTransform_Valid_LessThan(),
+            self::dataProvider_testTransform_Valid_LessThanOrEquals(),
+            self::dataProvider_testTransform_Valid_In(),
+            self::dataProvider_testTransform_Valid_NotIn(),
+            self::dataProvider_testTransform_Valid_Empty(),
+            self::dataProvider_testTransform_Valid_NotEmpty(),
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_Equals(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    ['a', 'b', 'c'],
+                    [
+                        [new Extraction(null), 'eq', 'b'],
+                    ],
+                    [1 => 'b'],
+                ],
+                [
+                    [3, 2, 1],
+                    [
+                        [new Extraction(null), 'eq', '1'],
+                    ],
+                    [2 => 1],
+                ],
+                [
+                    [3, 2, 1],
+                    [
+                        [new Extraction(null), 'eq', '1', true],
+                    ],
+                    [],
+                ],
+                [
+                    [[3], [2], [1]],
+                    [
+                        [new Extraction(null), 'eq', [1]],
+                    ],
+                    [2 => [1]],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'eq', 1],
+                    ],
+                    [true, 1, '1'],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'eq', 1, true],
+                    ],
+                    [1 => 1],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'eq', new Extraction(null)],
+                    ],
+                    [true, 1, '1', false, 0, '0'],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'eq', new Extraction(null), true],
+                    ],
+                    [true, 1, '1', false, 0, '0'],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction('compareValue::'), 'eq', new Extraction(null)],
+                    ],
+                    [0 => true, 1 => 1, 2 => '1', 6 => 1.0],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction('compareValue::'), 'eq', new Extraction(null), true],
+                    ],
+                    [6 => 1.0],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction(null), 'eq', new Extraction('compareValue::')],
+                    ],
+                    [0 => true, 1 => 1, 2 => '1', 6 => 1.0],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction(null), 'eq', new Extraction('compareValue::'), true],
+                    ],
+                    [6 => 1.0],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_NotEquals(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    ['a', 'b', 'c'],
+                    [
+                        [new Extraction(null), 'neq', 'b'],
+                    ],
+                    [0 => 'a', 2 => 'c'],
+                ],
+                [
+                    [3, 2, 1],
+                    [
+                        [new Extraction(null), 'neq', '1'],
+                    ],
+                    [3, 2],
+                ],
+                [
+                    [3, 2, 1],
+                    [
+                        [new Extraction(null), 'neq', '1', true],
+                    ],
+                    [3, 2, 1],
+                ],
+                [
+                    [[3], [2], [1]],
+                    [
+                        [new Extraction(null), 'neq', [1]],
+                    ],
+                    [[3], [2]],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'neq', 1],
+                    ],
+                    [3 => false, 0, '0'],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'neq', 1, true],
+                    ],
+                    [true, 2 => '1', false, 0, '0'],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'neq', new Extraction(null)],
+                    ],
+                    [],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        [new Extraction(null), 'neq', new Extraction(null), true],
+                    ],
+                    [],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction('compareValue::'), 'neq', new Extraction(null)],
+                    ],
+                    [3 => false, 4 => 0, 5 => '0'],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction('compareValue::'), 'neq', new Extraction(null), true],
+                    ],
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction(null), 'neq', new Extraction('compareValue::')],
+                    ],
+                    [3 => false, 4 => 0, 5 => '0'],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+                [
+                    [true, 1, '1', false, 0, '0', 1.0],
+                    [
+                        [new Extraction(null), 'neq', new Extraction('compareValue::'), true],
+                    ],
+                    [true, 1, '1', false, 0, '0'],
+                    [
+                        'compareValue' => 1.0,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_GreaterThan(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gt', 0.1],
+                    ],
+                    [1 => 0.2],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gt', new Extraction(null)],
+                    ],
+                    [],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gt', new Extraction('compareValue::')],
+                    ],
+                    [1 => 0.2],
+                    [
+                        'compareValue' => 0.1,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_GreaterThanOrEquals(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gte', 0.1],
+                    ],
+                    [0.1, 0.2],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gte', new Extraction(null)],
+                    ],
+                    [0.1, 0.2, -0.1],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'gte', new Extraction('compareValue::')],
+                    ],
+                    [0.1, 0.2],
+                    [
+                        'compareValue' => 0.1,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_LessThan(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lt', 0.1],
+                    ],
+                    [2 => -0.1],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lt', new Extraction(null)],
+                    ],
+                    [],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lt', new Extraction('compareValue::')],
+                    ],
+                    [2 => -0.1],
+                    [
+                        'compareValue' => 0.1,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_LessThanOrEquals(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lte', 0.1],
+                    ],
+                    [0 => 0.1, 2 => -0.1],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lte', new Extraction(null)],
+                    ],
+                    [0.1, 0.2, -0.1],
+                ],
+                [
+                    [0.1, 0.2, -0.1],
+                    [
+                        [new Extraction(null), 'lte', new Extraction('compareValue::')],
+                    ],
+                    [0 => 0.1, 2 => -0.1],
+                    [
+                        'compareValue' => 0.1,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_In(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'in', [1]],
+                    ],
+                    [0 => 1, 2 => '1', 3 => 1],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'in', [1], true],
+                    ],
+                    [0 => 1, 3 => 1],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'in', new Extraction('compareValue::'), true],
+                    ],
+                    [0 => 1, 3 => 1],
+                    [
+                        'compareValue' => [1],
+                    ],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'in', new Extraction('compareValue::'), true],
+                    ],
+                    [0 => 1, 3 => 1],
+                    [
+                        'compareValue' => [1],
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_NotIn(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'nin', [1]],
+                    ],
+                    [1 => 2, 4 => 'foo'],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'nin', [1], true],
+                    ],
+                    [1 => 2, 2 => '1', 4 => 'foo'],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'nin', new Extraction('compareValue::')],
+                    ],
+                    [1 => 2, 4 => 'foo'],
+                    [
+                        'compareValue' => [1],
+                    ],
+                ],
+                [
+                    [1, 2, '1', 1, 'foo'],
+                    [
+                        [new Extraction(null), 'nin', new Extraction('compareValue::'), true],
+                    ],
+                    [1 => 2, 2 => '1', 4 => 'foo'],
+                    [
+                        'compareValue' => [1],
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_Empty(): array
+    {
+        $emptyObject = (object)[];
+        $emptyArgumentIterator = new ArgumentIterator([]);
+
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [[], [null], 0, false, ' ', $emptyObject, $emptyArgumentIterator],
+                    [
+                        [new Extraction(null), 'empty', 'this does not matter'],
+                    ],
+                    [0 => [], 2 => 0, 3 => false, 6 => $emptyArgumentIterator],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    private static function dataProvider_testTransform_Valid_NotEmpty(): array
+    {
+        $emptyObject = (object)[];
+        $emptyArgumentIterator = new ArgumentIterator([]);
+
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [[], [null], 0, false, ' ', $emptyObject, $emptyArgumentIterator],
+                    [
+                        [new Extraction(null), 'nempty', 'this does not matter'],
+                    ],
+                    [1 => [null], 4 => ' ', 5 => $emptyObject],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testTransform_InvalidInputData(): array
+    {
+        $fileHandle = fopen(
+            filename: __FILE__,
+            mode: 'r',
+        );
+        $fileHandle && fclose($fileHandle);
 
         return [
-            [
-                'foo',
-                $argumentIteratorFactory->create([
-                    ['', 'nempty'],
-                ]),
-                null,
-            ],
-            [
-                new \stdClass(),
-                $argumentIteratorFactory->create([
-                    ['', 'nempty'],
-                ]),
-                null,
-            ],
+            ['foo'],
+            [42],
+            [3.14],
+            [true],
+            [(object)['foo']],
+            [$fileHandle],
         ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param ArgumentIterator|null $arguments
-     * @param \ArrayAccess<int|string, mixed>|null $context
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_InvalidData')]
-    public function testTransform_InvalidData(
-        mixed $data,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context = null,
-    ): void {
-        $filterCompare = new FilterCompare();
-
-        $this->expectException(InvalidInputDataException::class);
-        $filterCompare->transform(
-            data: $data,
-            arguments: $arguments,
-            context: $context,
-        );
     }
 
     /**
@@ -450,86 +793,58 @@ class FilterCompareTest extends TestCase
      */
     public static function dataProvider_testTransform_InvalidArguments(): array
     {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
-
-        return [
-            [
-                ['foo'],
-                null,
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    ['foo'],
+                    [
+                        null,
+                    ],
                     null,
-                ]),
-                null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        true,
+                    ],
+                    null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        'foo',
+                    ],
+                    null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        42,
+                    ],
+                    null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        3.14,
+                    ],
+                    null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        [],
+                    ],
+                    null,
+                ],
+                [
+                    ['foo'],
+                    [
+                        new \stdClass(),
+                    ],
+                    null,
+                ],
             ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    true,
-                ]),
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    'foo',
-                ]),
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    42,
-                ]),
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    3.14,
-                ]),
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    [],
-                ]),
-                null,
-            ],
-            [
-                ['foo'],
-                $argumentIteratorFactory->create([
-                    new \stdClass(),
-                ]),
-                null,
-            ],
-        ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param mixed $arguments
-     * @param \ArrayAccess<int|string, mixed>|null $context
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_InvalidArguments')]
-    public function testTransform_InvalidArguments(
-        mixed $data,
-        mixed $arguments,
-        ?\ArrayAccess $context = null,
-    ): void {
-        $filterCompare = new FilterCompare();
-
-        $this->expectException(InvalidTransformationArgumentsException::class);
-        $filterCompare->transform(
-            data: $data,
-            arguments: $arguments, // @phpstan-ignore-line
-            context: $context,
         );
     }
 
@@ -538,37 +853,34 @@ class FilterCompareTest extends TestCase
      */
     public static function dataProvider_testTransform_AccessorException(): array
     {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
+        $testObjectFoo = new TestObject(
+            privateProperty: new TestObject(publicProperty: true),
+        );
+        $testObjectBar = new TestObject(
+            privateProperty: null,
+        );
+        $testObjectBaz = new TestObject(
+            privateProperty: new TestObject(publicProperty: null),
+        );
 
-        return [
-            [
+        return self::convertFixtures(
+            fixtures: [
                 [
-                    'foo' => new TestObject(
-                        privateProperty: new TestObject(publicProperty: true),
-                    ),
-                    'bar' => new TestObject(
-                        privateProperty: null,
-                    ),
-                    'baz' => new TestObject(
-                        privateProperty: new TestObject(publicProperty: null),
-                    ),
-                ],
-                $argumentIteratorFactory->create([
-                    new FilterComparison(
-                        sourceValue: new Extraction(accessor: 'getPrivateProperty().publicProperty'),
-                        comparator: Comparators::NOT_EMPTY,
-                        compareValue: null,
-                    ),
-                ]),
-                null,
-                [
-                    'foo' => new TestObject(
-                        privateProperty: new TestObject(publicProperty: true),
-                    ),
-                    // bar and baz are filtered because failed extraction returns null, which is empty
+                    [
+                        'foo' => $testObjectFoo,
+                        'bar' => $testObjectBar,
+                        'baz' => $testObjectBaz,
+                    ],
+                    [
+                        [new Extraction(accessor: 'getPrivateProperty().publicProperty'), 'nempty', null],
+                    ],
+                    [
+                        'foo' => $testObjectFoo,
+                        // bar and baz are filtered because failed extraction returns null, which is empty
+                    ],
                 ],
             ],
-        ];
+        );
     }
 
     /**
@@ -583,9 +895,9 @@ class FilterCompareTest extends TestCase
     #[DataProvider('dataProvider_testTransform_AccessorException')]
     public function testTransform_AccessorException(
         mixed $data,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context,
         mixed $expectedResult,
+        ?ArgumentIterator $arguments = null,
+        ?\ArrayAccess $context = null,
     ): void {
         $filterCompare = new FilterCompare();
 
@@ -601,16 +913,44 @@ class FilterCompareTest extends TestCase
     }
 
     /**
-     * @param mixed[] $data
-     * @return IteratorInterface
+     * @param mixed[][] $fixtures
+     *
+     * @return mixed[][]
      */
-    private function getMockIterator(array $data): IteratorInterface
-    {
-        $mockIterator = $this->getMockBuilder(IteratorInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $mockIterator->method('toArray')->willReturn($data);
+    private static function convertFixtures(
+        array $fixtures,
+    ): array {
+        $argumentIteratorFactory = new ArgumentIteratorFactory();
 
-        return $mockIterator;
+        $return = array_merge(
+            ...array_map(
+                callback: static fn (array $data): array => [
+                    [
+                        $data[0],
+                        $data[2],
+                        $argumentIteratorFactory->create(
+                            arguments: array_map(
+                                callback: static fn (mixed $filterComparisonData): mixed => (is_array($filterComparisonData) && count($filterComparisonData) >= 3) // phpcs:ignore Generic.Files.LineLength.TooLong
+                                    ? new FilterComparison(
+                                        sourceValue: $filterComparisonData[0],
+                                        comparator: Comparators::from($filterComparisonData[1]),
+                                        compareValue: $filterComparisonData[2],
+                                        strict: $filterComparisonData[3] ?? false,
+                                    )
+                                    : $filterComparisonData,
+                                // @phpstan-ignore-next-line We know this is an array
+                                array: $data[1] ?: [],
+                            ),
+                        ),
+                        !empty($data[3])
+                            ? new Context($data[3])
+                            : null,
+                    ],
+                ],
+                array: $fixtures,
+            ),
+        );
+
+        return $return;
     }
 }

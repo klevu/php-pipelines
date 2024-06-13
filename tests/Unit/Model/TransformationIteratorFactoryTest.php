@@ -96,9 +96,9 @@ class TransformationIteratorFactoryTest extends TestCase
         string $syntaxDeclaration,
         TransformationIterator $expectedResult,
     ): void {
-        $transformationFactory = new TransformationIteratorFactory();
+        $transformationIteratorFactory = new TransformationIteratorFactory();
 
-        $actualResult = $transformationFactory->createFromSyntaxDeclaration(
+        $actualResult = $transformationIteratorFactory->createFromSyntaxDeclaration(
             syntaxDeclaration: $syntaxDeclaration,
         );
 

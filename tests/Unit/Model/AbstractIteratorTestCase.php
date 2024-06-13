@@ -144,10 +144,12 @@ abstract class AbstractIteratorTestCase extends TestCase
         $this->assertSame(key($data), $iterator->key(), 'Key at start');
         $this->assertSame(current($data), $iterator->current(), 'Current at start');
 
-        next($data);
-        $iterator->next();
-        $this->assertSame(key($data), $iterator->key(), 'Key after next');
-        $this->assertsame(current($data), $iterator->current(), 'Current after next');
+        for ($i = 0; $i <= count($data) + 1; $i++) {
+            next($data);
+            $iterator->next();
+            $this->assertSame(key($data), $iterator->key(), 'Key after next');
+            $this->assertSame(current($data), $iterator->current(), 'Current after next');
+        }
 
         reset($data);
         $iterator->rewind();

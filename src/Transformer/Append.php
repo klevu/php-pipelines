@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Transformer;
 
-use Klevu\Pipelines\Model\Argument;
 use Klevu\Pipelines\Model\ArgumentIterator;
 
 /**
@@ -27,8 +26,8 @@ class Append extends AbstractConcatenate
         null|bool|string|int|float $data,
         ArgumentIterator $arguments,
     ): ArgumentIterator {
-        $return = new ArgumentIterator([
-            new Argument((string)$data),
+        $return = $this->argumentIteratorFactory->create([
+            (string)$data,
         ]);
 
         return $return->merge($arguments);

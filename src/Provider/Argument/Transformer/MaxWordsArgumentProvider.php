@@ -77,12 +77,15 @@ class MaxWordsArgumentProvider
             extractionContext: $extractionContext,
         );
 
-        if (!is_numeric($argumentValue)) {
+        if (
+            (!is_int($argumentValue) && !ctype_digit($argumentValue))
+            || $argumentValue <= 0
+        ) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: MaxWordsTransformer::class,
                 errors: [
                     sprintf(
-                        'Max Words argument (%s) must be numeric; Received %s',
+                        'Max Words argument (%s) must be a positive whole number; Received %s',
                         self::ARGUMENT_INDEX_MAX_WORDS,
                         is_scalar($argumentValue)
                             ? $argumentValue

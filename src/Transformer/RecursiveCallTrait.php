@@ -52,16 +52,19 @@ trait RecursiveCallTrait
             ));
         }
 
-        $this->isRecursiveCall = true;
-        $return = array_map(
-            fn (mixed $item): mixed => $this->transform(
-                data: $item,
-                arguments: $arguments,
-                context: $context,
-            ),
-            $this->convertIterableToArray($data),
-        );
-        $this->isRecursiveCall = false;
+        try {
+            $this->isRecursiveCall = true;
+            $return = array_map(
+                fn (mixed $item): mixed => $this->transform(
+                    data: $item,
+                    arguments: $arguments,
+                    context: $context,
+                ),
+                $this->convertIterableToArray($data),
+            );
+        } finally {
+            $this->isRecursiveCall = false;
+        }
 
         return $return;
     }

@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Transformer;
 
-use Klevu\Pipelines\Model\Argument;
 use Klevu\Pipelines\Model\ArgumentIterator;
 
 /**
@@ -28,8 +27,8 @@ class Prepend extends AbstractConcatenate
         ArgumentIterator $arguments,
     ): ArgumentIterator {
         return $arguments->merge(
-            new ArgumentIterator([
-                new Argument((string)$data),
+            $this->argumentIteratorFactory->create([
+                (string)$data,
             ]),
         );
     }

@@ -19,6 +19,9 @@ use Klevu\Pipelines\Provider\Argument\Validator\IsValidDateArgumentProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
+/**
+ * @todo Support timezones
+ */
 class IsValidDate implements ValidatorInterface
 {
     public const ARGUMENT_INDEX_ALLOWED_FORMATS = IsValidDateArgumentProvider::ARGUMENT_INDEX_ALLOWED_FORMATS;
@@ -82,13 +85,35 @@ class IsValidDate implements ValidatorInterface
             );
         }
 
-        $timestamp = strtotime($data);
-        if (false === $timestamp) {
+        try {
+            $dateTime = new \DateTimeImmutable($data);
+        } catch (\Exception $exception) {
             throw new InvalidDataValidationException(
                 validatorName: $this::class,
                 errors: [
                     sprintf(
                         'Data is not a valid date string; Received "%s"',
+                        $data,
+                    ),
+                ],
+                arguments: $arguments,
+                data: $data,
+                previous: $exception,
+            );
+        }
+
+        [$tsYear, $tsMonth, $tsDay] = explode('-', $dateTime->format('Y-m-d'));
+        $isValidDate = checkdate(
+            month: (int)$tsMonth,
+            day: (int)$tsDay,
+            year: (int)$tsYear,
+        );
+        if (!$isValidDate) {
+            throw new InvalidDataValidationException(
+                validatorName: $this::class,
+                errors: [
+                    sprintf(
+                        'Data is not a valid date; Received "%s"',
                         $data,
                     ),
                 ],
@@ -106,7 +131,7 @@ class IsValidDate implements ValidatorInterface
         if (null !== $allowedFormatsArgumentValue) {
             $matchesFormat = false;
             foreach ($allowedFormatsArgumentValue as $allowedFormatValue) {
-                if ($data === date($allowedFormatValue, $timestamp)) {
+                if ($data === $dateTime->format($allowedFormatValue)) {
                     $matchesFormat = true;
                     break;
                 }
@@ -117,8 +142,9 @@ class IsValidDate implements ValidatorInterface
                     validatorName: $this::class,
                     errors: [
                         sprintf(
-                            'Data does not match expected date format; Received "%s"',
+                            'Data does not match expected date format; Received "%s"; allowed formats: %s',
                             $data,
+                            json_encode($allowedFormatsArgumentValue),
                         ),
                     ],
                     arguments: $arguments,

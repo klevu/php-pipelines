@@ -34,11 +34,11 @@ class TransformationIterator implements IteratorInterface
     }
 
     /**
-     * @return Transformation
+     * @return Transformation|false
      */
-    public function current(): Transformation
+    public function current(): Transformation|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -46,6 +46,6 @@ class TransformationIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof Transformation;
+        return $this->current() instanceof Transformation;
     }
 }

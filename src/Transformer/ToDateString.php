@@ -46,7 +46,7 @@ class ToDateString implements TransformerInterface
      * @throws NotFoundExceptionInterface
      */
     public function __construct(
-        ?ToDateStringArgumentProvider $argumentProvider,
+        ?ToDateStringArgumentProvider $argumentProvider = null,
     ) {
         $container = Container::getInstance();
 
@@ -135,7 +135,7 @@ class ToDateString implements TransformerInterface
                 expectedType: 'int|string|int[]|string[]',
                 arguments: $arguments,
                 data: $data,
-                message: 'Input data cannot be converted to date time',
+                message: 'Input data cannot be converted to date time: ' . $exception->getMessage(),
                 previous: $exception,
             );
         }

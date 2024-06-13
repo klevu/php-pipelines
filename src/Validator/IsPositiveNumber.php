@@ -88,6 +88,10 @@ class IsPositiveNumber implements ValidatorInterface
         ?ArgumentIterator $arguments = null,
         ?\ArrayAccess $context = null,
     ): void {
+        if (null === $data) {
+            return;
+        }
+
         $this->isNumericValidator->validate(
             data: $data,
             context: $context,

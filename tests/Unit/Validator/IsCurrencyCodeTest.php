@@ -12,22 +12,27 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Validator;
 
-use Klevu\Pipelines\Exception\Validation\InvalidDataValidationException;
-use Klevu\Pipelines\Exception\Validation\InvalidTypeValidationException;
-use Klevu\Pipelines\Exception\ValidationException;
 use Klevu\Pipelines\Validator\IsCurrencyCode;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
+/**
+ * @method IsCurrencyCode initialiseTestObject()
+ */
 #[CoversClass(IsCurrencyCode::class)]
-class IsCurrencyCodeTest extends TestCase
+class IsCurrencyCodeTest extends AbstractValidatorTestCase
 {
     /**
-     * @return mixed[]
+     * @var string
      */
-    public static function dataProvider_testCurrencyCode_Success(): array
+    protected string $validatorFqcn = IsCurrencyCode::class;
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testValidate_Valid(): array
     {
         return [
+            [null],
             ['GBP'],
             ['JPY'],
             ['USD'],
@@ -83,20 +88,9 @@ class IsCurrencyCodeTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testCurrencyCode_Success
+     * @return mixed[][]
      */
-    public function testValidCurrencyCode_WithSuccess(
-        mixed $input,
-    ): void {
-        $validator = new IsCurrencyCode();
-        $validator->validate($input);
-        $this->addToAssertionCount(1);
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testCurrencyCode_WithInvalidType(): array
+    public static function dataProvider_testValidate_InvalidType(): array
     {
         return [
             [3.12],
@@ -110,33 +104,9 @@ class IsCurrencyCodeTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testCurrencyCode_WithInvalidType
+     * @return mixed[][]
      */
-    public function testCurrencyCode_WithInvalidType_Exception(
-        mixed $input,
-    ): void {
-        $validator = new IsCurrencyCode();
-
-        $this->expectException(InvalidTypeValidationException::class);
-        $this->expectExceptionMessage('Invalid data type received');
-        try {
-            $validator->validate($input);
-        } catch (ValidationException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Data must be null\|string/',
-                string: $errors[0] ?? '',
-            );
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testCurrencyCode_WithInvalidData(): array
+    public static function dataProvider_testValidate_InvalidData(): array
     {
         return [
             ['$'],
@@ -153,29 +123,5 @@ class IsCurrencyCodeTest extends TestCase
             ['123'],
             ['AB'],
         ];
-    }
-
-    /**
-     * @dataProvider dataProvider_testCurrencyCode_WithInvalidData
-     */
-    public function testCurrencyCode_WithInvalidData_Exception(
-        mixed $input,
-    ): void {
-        $validator = new IsCurrencyCode();
-
-        $this->expectException(InvalidDataValidationException::class);
-        $this->expectExceptionMessage('Data is not valid');
-        try {
-            $validator->validate($input);
-        } catch (ValidationException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Data is not valid currency code/',
-                string: $errors[0] ?? '',
-            );
-
-            throw $exception;
-        }
     }
 }

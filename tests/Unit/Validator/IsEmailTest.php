@@ -12,22 +12,27 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Validator;
 
-use Klevu\Pipelines\Exception\Validation\InvalidDataValidationException;
-use Klevu\Pipelines\Exception\Validation\InvalidTypeValidationException;
-use Klevu\Pipelines\Exception\ValidationException;
 use Klevu\Pipelines\Validator\IsEmail;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
+/**
+ * @method IsEmail initialiseTestObject()
+ */
 #[CoversClass(IsEmail::class)]
-class IsEmailTest extends TestCase
+class IsEmailTest extends AbstractValidatorTestCase
 {
     /**
-     * @return mixed[]
+     * @var string
      */
-    public static function dataProvider_testEmail_Success(): array
+    protected string $validatorFqcn = IsEmail::class;
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testValidate_Valid(): array
     {
         return [
+            [null],
             ['test@domain.uk'],
             ['test@example.com'],
             ['test@example2.com'],
@@ -47,20 +52,9 @@ class IsEmailTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testEmail_Success
+     * @return mixed[][]
      */
-    public function testValidEmail_WithSuccess(
-        mixed $input,
-    ): void {
-        $validator = new IsEmail();
-        $validator->validate($input);
-        $this->addToAssertionCount(1);
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testEmail_WithInvalidType(): array
+    public static function dataProvider_testValidate_InvalidType(): array
     {
         return [
             [3.12],
@@ -74,62 +68,14 @@ class IsEmailTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testEmail_WithInvalidType
+     * @return mixed[][]
      */
-    public function testEmail_WithInvalidType_Exception(
-        mixed $input,
-    ): void {
-        $validator = new IsEmail();
-
-        $this->expectException(InvalidTypeValidationException::class);
-        $this->expectExceptionMessage('Invalid data type received');
-        try {
-            $validator->validate($input);
-        } catch (ValidationException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Data must be null\|string/',
-                string: $errors[0] ?? '',
-            );
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testEmail_WithInvalidData(): array
+    public static function dataProvider_testValidate_InvalidData(): array
     {
         return [
             ['@example.com'],
             ['foo@.com'],
             ['foo bar'],
         ];
-    }
-
-    /**
-     * @dataProvider dataProvider_testEmail_WithInvalidData
-     */
-    public function testEmail_WithInvalidData_Exception(
-        mixed $input,
-    ): void {
-        $validator = new IsEmail();
-
-        $this->expectException(InvalidDataValidationException::class);
-        $this->expectExceptionMessage('Data is not valid');
-        try {
-            $validator->validate($input);
-        } catch (ValidationException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Data must be valid email/',
-                string: $errors[0] ?? '',
-            );
-
-            throw $exception;
-        }
     }
 }

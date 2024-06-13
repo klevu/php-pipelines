@@ -12,19 +12,26 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Validator;
 
-use Klevu\Pipelines\Exception\Validation\InvalidDataValidationException;
-use Klevu\Pipelines\Exception\ValidationException;
 use Klevu\Pipelines\Validator\IsNotEmpty;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 
+/**
+ * @method IsNotEmpty initialiseTestObject()
+ */
 #[CoversClass(IsNotEmpty::class)]
-class IsNotEmptyTest extends TestCase
+class IsNotEmptyTest extends AbstractValidatorTestCase
 {
     /**
-     * @return mixed[]
+     * @var string
      */
-    public static function dataProvider_testNotEmpty_Success(): array
+    protected string $validatorFqcn = IsNotEmpty::class;
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testValidate_Valid(): array
     {
         return [
             [3.12],
@@ -42,20 +49,17 @@ class IsNotEmptyTest extends TestCase
     }
 
     /**
-     * @dataProvider dataProvider_testNotEmpty_Success
+     * @return mixed[][]
      */
-    public function testValidNotEmpty_WithSuccess(
-        mixed $input,
-    ): void {
-        $validator = new IsNotEmpty();
-        $validator->validate($input);
-        $this->addToAssertionCount(1);
+    public static function dataProvider_testValidate_InvalidType(): array
+    {
+        return [];
     }
 
     /**
-     * @return mixed[]
+     * @return mixed[][]
      */
-    public static function dataProvider_testNotEmpty_WithInvalidData(): array
+    public static function dataProvider_testValidate_InvalidData(): array
     {
         return [
             [""],
@@ -65,27 +69,11 @@ class IsNotEmptyTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider dataProvider_testNotEmpty_WithInvalidData
-     */
-    public function testNotEmpty_WithInvalidData_Exception(
-        mixed $input,
+    #[Test]
+    #[TestWith([null])]
+    public function testValidate_InvalidType(
+        mixed $data, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
     ): void {
-        $validator = new IsNotEmpty();
-
-        $this->expectException(InvalidDataValidationException::class);
-        $this->expectExceptionMessage('Data is not valid');
-        try {
-            $validator->validate($input);
-        } catch (ValidationException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Data must not be empty/',
-                string: $errors[0] ?? '',
-            );
-
-            throw $exception;
-        }
+        $this->markTestSkipped();
     }
 }

@@ -14,65 +14,133 @@ namespace Klevu\Pipelines\Test\Unit\Transformer;
 
 use Klevu\Pipelines\Exception\Transformation\InvalidInputDataException;
 use Klevu\Pipelines\Exception\Transformation\InvalidTransformationArgumentsException;
-use Klevu\Pipelines\Model\Argument;
+use Klevu\Pipelines\Exception\TransformationException;
 use Klevu\Pipelines\Model\ArgumentIterator;
 use Klevu\Pipelines\Model\ArgumentIteratorFactory;
 use Klevu\Pipelines\Transformer\Add;
 use Klevu\Pipelines\Transformer\Calc;
 use Klevu\Pipelines\Transformer\Divide;
+use Klevu\Pipelines\Transformer\TransformerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\TestWith;
 
 #[CoversClass(Divide::class)]
-class DivideTest extends TestCase
+class DivideTest extends AbstractTransformerTestCase
 {
+    /**
+     * @var string
+     */
+    protected string $transformerFqcn = Divide::class;
+
     /**
      * @return mixed[]
      */
-    public static function dataProvider_testTransform_Success(): array
+    public static function dataProvider_testTransform_Valid(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [10, 5, 2],
+                [4, -3, -1.3333333333333333],
+                [2, -3, -0.6666666666666666],
+                [2, 1.5, 1.3333333333333333],
+                [1.5, 1.6, 0.9375],
+                [1.25, 1.81, 0.6906077348066298],
+                [5, -2.5, -2.0],
+                [0, 2.7, 0.0],
+            ],
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testTransform_InvalidInputData(): array
     {
         return [
-            [10, 5, 2],
-            [4, -3, -1.3333333333333333],
-            [2, -3, -0.6666666666666666],
-            [2, 1.5, 1.3333333333333333],
-            [1.5, 1.6, 0.9375],
-            [1.25, 1.81, 0.6906077348066298],
-            [5, -2.5, -2.0],
-            [0, 2.7, 0.0],
+            ['foo'],
+            [['foo']],
+            [false],
+            [[false]],
+            [(object)[42]],
+            [[(object)[42]]],
         ];
     }
 
     /**
-     * @param mixed $data
-     * @param mixed $value
-     * @param mixed $expectedResult
-     *
-     * @return void
+     * @return mixed[][]
      */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_Success')]
-    public function testTransform_WithSuccess(
-        mixed $data,
-        mixed $value,
-        mixed $expectedResult,
-    ): void {
-        $addTransformer = new Divide();
-
-        $arguments = new ArgumentIterator([
-            new Argument(
-                value: $value,
-                key: Add::ARGUMENT_INDEX_VALUE,
-            ),
-        ]);
-
-        $result = $addTransformer->transform(
-            data: $data,
-            arguments: $arguments,
+    public static function dataProvider_testTransform_InvalidArguments(): array
+    {
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    1.23456789,
+                    [
+                        ['', 'nEmpty'],
+                    ],
+                    null,
+                ],
+            ],
         );
-        $this->assertSame($expectedResult, $result);
+    }
+
+    /**
+     * @param mixed[][] $fixtures
+     *
+     * @return mixed[][]
+     */
+    private static function convertFixtures(
+        array $fixtures,
+    ): array {
+        $argumentIteratorFactory = new ArgumentIteratorFactory();
+
+        return array_map(
+            callback: static fn (mixed $data): array => [
+                $data[0],
+                $data[2],
+                $argumentIteratorFactory->create([
+                    Add::ARGUMENT_INDEX_VALUE => $data[1],
+                ]),
+            ],
+            array: $fixtures,
+        );
+    }
+
+    #[Test]
+    #[TestWith([42])]
+    #[TestWith([[3.14]])]
+    public function testTransform_DivideByZero(
+        mixed $data,
+    ): void {
+        $argumentIteratorFactory = new ArgumentIteratorFactory();
+
+        /** @var TransformerInterface $transformer */
+        $transformer = $this->initialiseTestObject();
+
+        $this->expectException(InvalidTransformationArgumentsException::class);
+        try {
+            $transformer->transform(
+                data: $data,
+                arguments: $argumentIteratorFactory->create([
+                    Divide::ARGUMENT_INDEX_VALUE => 0,
+                ]),
+            );
+        } catch (TransformationException $exception) {
+            $this->assertInstanceOf(
+                expected: InvalidTransformationArgumentsException::class,
+                actual: $exception,
+            );
+            $errors = $exception->getErrors();
+            $this->assertNotEmpty($errors);
+            $this->assertMatchesRegularExpression(
+                pattern: '/Value argument \(.*\) must not be zero for division operations/',
+                string: $errors[0] ?? '',
+            );
+
+            throw $exception;
+        }
     }
 
     /**
@@ -150,114 +218,6 @@ class DivideTest extends TestCase
             $this->assertCount(1, $errors);
             $this->assertMatchesRegularExpression(
                 pattern: '/Invalid data\. Expected numeric\|numeric\[\], received .*/',
-                string: $errors[0] ?? '',
-            );
-            $this->assertSame(
-                expected: Calc::class,
-                actual: $exception->getTransformerName(),
-            );
-            throw $exception;
-        }
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testTransform_InvalidData_CalcException(): array
-    {
-        $argumentIteratorFactory = new ArgumentIteratorFactory();
-
-        return [
-            [
-                1.23456789,
-                $argumentIteratorFactory->create([
-                    ['', 'nEmpty'],
-                ]),
-                null,
-            ],
-        ];
-    }
-
-    /**
-     * @param mixed $input
-     * @param ArgumentIterator|null $arguments
-     * @param \ArrayAccess<string|int, mixed>|null $context
-     *
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_InvalidData_CalcException')]
-    public function testTransform_WithInvalidData_CalcException(
-        mixed $input,
-        ?ArgumentIterator $arguments,
-        ?\ArrayAccess $context = null,
-    ): void {
-        $addTransformer = new Divide();
-
-        $this->expectException(InvalidTransformationArgumentsException::class);
-        $this->expectExceptionMessage('Invalid argument for transformation');
-        try {
-            $addTransformer->transform(
-                data: $input,
-                arguments: $arguments,
-                context: $context,
-            );
-        } catch (InvalidTransformationArgumentsException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Invalid Value argument \(\d+\): .*/',
-                string: $errors[0] ?? '',
-            );
-            $this->assertSame(
-                expected: Calc::class,
-                actual: $exception->getTransformerName(),
-            );
-            throw $exception;
-        }
-    }
-
-    /**
-     * @return mixed[]
-     */
-    public static function dataProvider_testTransform_ZeroInvalidData_CalcException(): array
-    {
-        return [
-            [6.9, 0, 6.9],
-        ];
-    }
-
-    /**
-     * @param mixed $data
-     * @param mixed $value
-     *
-     * @return void
-     */
-    #[Test]
-    #[DataProvider('dataProvider_testTransform_ZeroInvalidData_CalcException')]
-    public function testTransform_WithZeroInvalidData_CalcException(
-        mixed $data,
-        mixed $value,
-    ): void {
-        $addTransformer = new Divide();
-        $arguments = new ArgumentIterator([
-            new Argument(
-                value: $value,
-                key: Add::ARGUMENT_INDEX_VALUE,
-            ),
-        ]);
-        $this->expectException(InvalidTransformationArgumentsException::class);
-        $this->expectExceptionMessage('Invalid argument for transformation');
-        try {
-            $addTransformer->transform(
-                data: $data,
-                arguments: $arguments,
-            );
-        } catch (InvalidTransformationArgumentsException $exception) {
-            $errors = $exception->getErrors();
-            $this->assertCount(1, $errors);
-            $this->assertMatchesRegularExpression(
-                pattern: '/Value argument \(\d+\) must not be zero for division operations/',
                 string: $errors[0] ?? '',
             );
             $this->assertSame(

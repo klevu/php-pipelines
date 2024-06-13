@@ -60,6 +60,10 @@ class IsNotGreaterThan implements ValidatorInterface
         ?ArgumentIterator $arguments = null,
         ?\ArrayAccess $context = null,
     ): void {
+        if (null === $data) {
+            return;
+        }
+
         try {
             $this->isGreaterThanValidator->validate(
                 data: $data,

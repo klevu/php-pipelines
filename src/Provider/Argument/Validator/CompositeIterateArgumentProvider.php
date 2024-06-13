@@ -178,6 +178,16 @@ class CompositeIterateArgumentProvider
                 );
         }
 
+        if (!count($argumentValue)) {
+            throw new InvalidValidationArgumentsException(
+                validatorName: $this::class,
+                errors: [
+                    'Validations cannot be empty',
+                ],
+                arguments: $arguments,
+            );
+        }
+
         return $argumentValue;
     }
 }

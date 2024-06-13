@@ -34,11 +34,11 @@ class SyntaxItemIterator implements IteratorInterface
     }
 
     /**
-     * @return SyntaxItem
+     * @return SyntaxItem|false
      */
-    public function current(): SyntaxItem
+    public function current(): SyntaxItem|false
     {
-        return $this->data[$this->key()];
+        return $this->data[$this->key()] ?? false;
     }
 
     /**
@@ -46,6 +46,6 @@ class SyntaxItemIterator implements IteratorInterface
      */
     public function valid(): bool
     {
-        return ($this->data[$this->key()] ?? null) instanceof SyntaxItem;
+        return $this->current() instanceof SyntaxItem;
     }
 }

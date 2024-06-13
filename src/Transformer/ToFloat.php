@@ -18,11 +18,13 @@ use Klevu\Pipelines\Model\ArgumentIterator;
  */
 class ToFloat implements TransformerInterface
 {
+    use RecursiveCallTrait;
+
     /**
      * @param mixed $data
      * @param ArgumentIterator|null $arguments
      * @param \ArrayAccess<string|int, mixed>|null $context
-     * @return float
+     * @return float|float[]
      * @throws TransformationException
      * @throws InvalidInputDataException
      */
@@ -30,14 +32,22 @@ class ToFloat implements TransformerInterface
         mixed $data,
         ?ArgumentIterator $arguments = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter, Generic.Files.LineLength.TooLong, Generic.Files.LineLength.TooLong
         ?\ArrayAccess $context = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
-    ): float {
+    ): float|array {
+        if ($this->shouldCallRecursively($data)) {
+            return $this->performRecursiveCall(
+                data: (array)$data,
+                arguments: $arguments,
+                context: $context,
+            );
+        }
+
         return match (true) {
             null === $data => 0.0,
             is_scalar($data) => (float)$data,
             $data instanceof \Stringable => (float)(string)$data,
             default => throw new InvalidInputDataException(
                 transformerName: $this::class,
-                expectedType: 'null|scalar|\Stringable',
+                expectedType: 'null|scalar|\Stringable|scalar[]',
                 arguments: $arguments,
                 data: $data,
             ),

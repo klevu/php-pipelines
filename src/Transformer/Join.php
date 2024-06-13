@@ -104,10 +104,6 @@ class Join implements TransformerInterface
                         $item = $item->getValue();
                     }
 
-                    if (is_scalar($item) && !is_string($item)) {
-                        $item = (string)$item;
-                    }
-
                     if ($item instanceof Extraction) {
                         $item = $this->extractor->extract(
                             source: $data,
@@ -115,14 +111,26 @@ class Join implements TransformerInterface
                             context: $context,
                         );
                     }
+
+                    if (!is_scalar($item)) {
+                        throw new \InvalidArgumentException(
+                            sprintf(
+                                'Data items must be, or evaluate, to a scalar value. Received %s',
+                                get_debug_type($item),
+                            ),
+                        );
+                    } elseif (!is_string($item)) {
+                        $item = (string)$item;
+                    }
                 },
             );
-        } catch (\InvalidArgumentException) {
+        } catch (\InvalidArgumentException $exception) {
             throw new InvalidInputDataException(
                 transformerName: $this::class,
                 expectedType: 'iterable',
                 arguments: $arguments,
                 data: $data,
+                previous: $exception,
             );
         }
 

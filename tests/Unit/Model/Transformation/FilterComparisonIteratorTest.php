@@ -59,6 +59,16 @@ class FilterComparisonIteratorTest extends AbstractIteratorTestCase
                     ),
                 ],
             ],
+            [
+                [
+                    new FilterComparison(
+                        sourceValue: new Extraction(accessor: 'getFoo()'),
+                        comparator: Comparators::EQUALS,
+                        compareValue: 'bar',
+                        strict: true,
+                    ),
+                ],
+            ],
         ];
     }
 

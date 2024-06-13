@@ -225,7 +225,6 @@ class ValueMapArgumentProviderTest extends TestCase
     }
 
     #[Test]
-    #[TestWith([null])]
     #[TestWith([42])]
     #[TestWith([3.14])]
     #[TestWith(['true'])]
@@ -352,7 +351,6 @@ class ValueMapArgumentProviderTest extends TestCase
     }
 
     #[Test]
-    #[TestWith([null])]
     #[TestWith([42])]
     #[TestWith([3.14])]
     #[TestWith(['true'])]

@@ -53,9 +53,9 @@ class PipelineBuilder implements PipelineBuilderInterface
      * @param PipelineFactoryInterface|null $pipelineFactory
      * @param LoggerInterface|null $logger
      * @param string|null $defaultPipeline
-     *  @throws ContainerExceptionInterface
-     *  @throws NotFoundExceptionInterface
-     *  @throws InvalidClassException
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws InvalidClassException
      */
     public function __construct(
         ?ConfigurationBuilder $configurationBuilder = null,

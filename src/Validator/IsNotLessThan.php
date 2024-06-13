@@ -60,6 +60,10 @@ class IsNotLessThan implements ValidatorInterface
         ?ArgumentIterator $arguments = null,
         ?\ArrayAccess $context = null,
     ): void {
+        if (null === $data) {
+            return;
+        }
+
         try {
             $this->isLessThanValidator->validate(
                 data: $data,
