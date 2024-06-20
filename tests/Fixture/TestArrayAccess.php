@@ -148,6 +148,9 @@ class TestArrayAccess implements \Iterator, \Countable, \ArrayAccess
      */
     public function toArray(): array
     {
-        return $this->data;
+        return array_combine(
+            keys: $this->keys,
+            values: $this->data,
+        );
     }
 }

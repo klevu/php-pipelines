@@ -112,7 +112,7 @@ class Join implements TransformerInterface
                         );
                     }
 
-                    if (!is_scalar($item)) {
+                    if (!is_scalar($item) && null !== $item) {
                         throw new \InvalidArgumentException(
                             sprintf(
                                 'Data items must be, or evaluate, to a scalar value. Received %s',
