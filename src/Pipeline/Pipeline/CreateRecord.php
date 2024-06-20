@@ -8,11 +8,15 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Pipeline\Pipeline;
 
-use Klevu\Pipelines\Exception\ExtractionException;
+use Klevu\Pipelines\Exception\ExtractionExceptionInterface;
+use Klevu\Pipelines\Exception\ObjectManager\InvalidClassException;
 use Klevu\Pipelines\Exception\Pipeline\InvalidPipelineArgumentsException;
-use Klevu\Pipelines\Exception\TransformationException;
+use Klevu\Pipelines\Exception\TransformationExceptionInterface;
 use Klevu\Pipelines\Exception\ValidationException;
 use Klevu\Pipelines\Exception\ValidationExceptionInterface;
+use Klevu\Pipelines\Extractor\Extractor;
+use Klevu\Pipelines\ObjectManager\Container;
+use Klevu\Pipelines\Parser\SyntaxParser;
 use Klevu\Pipelines\Pipeline\PipelineInterface;
 use Klevu\Pipelines\Pipeline\StagesTrait;
 
@@ -22,6 +26,10 @@ class CreateRecord implements PipelineInterface
 
     public const ARGUMENT_KEY_RETURN_OBJECT = 'returnObject';
 
+    /**
+     * @var Extractor
+     */
+    private Extractor $extractor;
     /**
      * @var string
      */
@@ -35,6 +43,8 @@ class CreateRecord implements PipelineInterface
      * @param PipelineInterface[] $stages
      * @param mixed[]|null $args
      * @param string $identifier
+     * @param Extractor|null $extractor
+     *
      * @throws \RuntimeException
      * @throws InvalidPipelineArgumentsException
      */
@@ -42,13 +52,26 @@ class CreateRecord implements PipelineInterface
         array $stages = [],
         ?array $args = null,
         string $identifier = '',
+        ?Extractor $extractor = null,
     ) {
+        $container = Container::getInstance();
+
         array_walk($stages, [$this, 'addStage']);
         if ($args) {
             $this->setArgs($args);
         }
 
         $this->identifier = $identifier;
+
+        $extractor ??= $container->get(Extractor::class);
+        try {
+            $this->extractor = $extractor; // @phpstan-ignore-line (we catch TypeError)
+        } catch (\TypeError) {
+            throw new InvalidClassException(
+                identifier: Extractor::class,
+                instance: $pipelineBuilder,
+            );
+        }
     }
 
     /**
@@ -61,6 +84,7 @@ class CreateRecord implements PipelineInterface
 
     /**
      * @param mixed[] $args
+     *
      * @return void
      * @throws InvalidPipelineArgumentsException
      */
@@ -77,10 +101,11 @@ class CreateRecord implements PipelineInterface
     /**
      * @param mixed $payload
      * @param \ArrayAccess<string|int, mixed>|null $context
+     *
      * @return object|mixed[]
-     * @throws ExtractionException
-     * @throws TransformationException
-     * @throws ValidationException
+     * @throws ExtractionExceptionInterface
+     * @throws TransformationExceptionInterface
+     * @throws ValidationExceptionInterface
      */
     public function execute(
         mixed $payload,
@@ -89,6 +114,14 @@ class CreateRecord implements PipelineInterface
         $return = [];
         foreach ($this->stages as $identifier => $stage) {
             try {
+                if (is_string($identifier) && str_starts_with($identifier, SyntaxParser::EXTRACTION_START_CHARACTER)) {
+                    $identifier = $this->extractor->extract(
+                        source: $payload,
+                        accessor: substr($identifier, 1),
+                        context: $context,
+                    );
+                }
+
                 $return[$identifier] = $stage->execute(
                     payload: $payload,
                     context: $context,
@@ -119,6 +152,7 @@ class CreateRecord implements PipelineInterface
     /**
      * @param mixed $returnObject
      * @param mixed[]|null $arguments
+     *
      * @return bool
      * @throws InvalidPipelineArgumentsException
      */

@@ -37,7 +37,7 @@ class Iterate extends Pipeline
      */
     private array $continueOnException = [];
     /**
-     * @var int|null 
+     * @var int|null
      */
     private ?int $maxIterations = null;
 
@@ -345,7 +345,6 @@ class Iterate extends Pipeline
                         get_debug_type($maxIterations),
                     ),
                 );
-                break;
         }
 
         return $return;
