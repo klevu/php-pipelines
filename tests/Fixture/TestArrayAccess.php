@@ -33,11 +33,14 @@ class TestArrayAccess implements \Iterator, \Countable, \ArrayAccess
 
     /**
      * @param mixed[] $data
+     * @param bool $retainNumericKeys
      */
-    public function __construct(array $data = [])
-    {
-        array_walk($data, function ($value, $offset): void {
-            if (is_int($offset)) {
+    public function __construct(
+        array $data = [],
+        bool $retainNumericKeys = false,
+    ) {
+        array_walk($data, function ($value, $offset) use ($retainNumericKeys): void {
+            if (is_int($offset) && !$retainNumericKeys) {
                 $offset = null;
             }
             $this->offsetSet($offset, $value);
@@ -54,7 +57,13 @@ class TestArrayAccess implements \Iterator, \Countable, \ArrayAccess
         if (null === $offset) {
             $offset = ++$this->currentAutoIncrement;
         } elseif (is_integer($offset) || ctype_digit($offset)) {
-            $this->currentAutoIncrement = (int)$offset;
+            $offset = (int)$offset;
+
+            $maxNumericKey = $this->getMaxNumericKey();
+            $this->currentAutoIncrement = max(
+                $offset,
+                (int)$maxNumericKey,
+            );
         }
 
         $this->data[$offset] = $value;
@@ -80,6 +89,12 @@ class TestArrayAccess implements \Iterator, \Countable, \ArrayAccess
     {
         if (array_key_exists($offset, $this->data)) {
             unset($this->data[$offset]);
+            $this->keys = array_keys($this->data);
+
+            $maxNumericKey = $this->getMaxNumericKey();
+            $this->currentAutoIncrement = (null === $maxNumericKey)
+                ? -1
+                : $maxNumericKey;
         }
     }
 
@@ -152,5 +167,20 @@ class TestArrayAccess implements \Iterator, \Countable, \ArrayAccess
             keys: $this->keys,
             values: $this->data,
         );
+    }
+
+    /**
+     * @return int|null
+     */
+    private function getMaxNumericKey(): ?int
+    {
+        $numericKeys = array_filter(
+            array: $this->keys,
+            callback: static fn (string|int $key): bool => is_int($key),
+        );
+
+        return $numericKeys
+            ? max($numericKeys)
+            : null;
     }
 }

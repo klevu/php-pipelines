@@ -14,4 +14,6 @@ enum ConfigurationElements: string
     case ARGS = 'args';
     case STAGES = 'stages';
     case IMPORT = 'import';
+    case ADD_STAGES = 'addStages';
+    case REMOVE_STAGES = 'removeStages';
 }

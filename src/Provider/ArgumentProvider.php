@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Provider;
 
+use Klevu\Pipelines\Exception\ExtractionExceptionInterface;
 use Klevu\Pipelines\Exception\ObjectManager\InvalidClassException;
+use Klevu\Pipelines\Exception\TransformationExceptionInterface;
 use Klevu\Pipelines\Extractor\Extractor;
 use Klevu\Pipelines\Model\Argument;
 use Klevu\Pipelines\Model\ArgumentIterator;
@@ -78,7 +80,10 @@ class ArgumentProvider implements ArgumentProviderInterface
      * @param mixed|null $defaultValue
      * @param mixed|null $extractionPayload
      * @param \ArrayAccess<string|int, mixed>|null $extractionContext
+     *
      * @return mixed
+     * @throws ExtractionExceptionInterface
+     * @throws TransformationExceptionInterface
      */
     public function getArgumentValueWithExtractionExpansion(
         ?ArgumentIterator $arguments,

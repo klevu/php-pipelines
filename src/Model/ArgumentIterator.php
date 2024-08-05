@@ -68,4 +68,40 @@ class ArgumentIterator implements IteratorInterface
             ? $matches->current()
             : null;
     }
+
+    /**
+     * @param IteratorInterface $iterator
+     *
+     * @return $this
+     */
+    public function mergeByArgumentKey(IteratorInterface $iterator): self
+    {
+        $return = clone $this;
+
+        if (!($iterator instanceof ArgumentIterator)) {
+            throw new \InvalidArgumentException(
+                message: sprintf(
+                    'iterator argument must be instance of %s; received %s',
+                    ArgumentIterator::class,
+                    $iterator::class,
+                ),
+            );
+        }
+
+        /** @var Argument $item */
+        foreach ($return as $item) {
+            $replacementItem = $iterator->getByKey(
+                key: $item->getKey(),
+            );
+            if (!$replacementItem) {
+                continue;
+            }
+
+            $item->setValue(
+                value: $replacementItem->getValue(),
+            );
+        }
+
+        return $return;
+    }
 }
