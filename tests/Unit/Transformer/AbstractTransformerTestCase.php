@@ -34,6 +34,10 @@ abstract class AbstractTransformerTestCase extends TestCase
      * @var string
      */
     protected string $transformerFqcn = '';
+    /**
+     * @var bool
+     */
+    protected bool $useStrictEqualityChecks = true;
 
     /**
      * @return mixed[][]
@@ -109,11 +113,23 @@ abstract class AbstractTransformerTestCase extends TestCase
             actual: $errors,
             message: $message,
         );
-        $this->assertSame(
-            expected: $expectedResult,
-            actual: $result,
-            message: $message,
-        );
+
+        if (
+            !$this->useStrictEqualityChecks
+            || (is_object($expectedResult) && is_object($result))
+        ) {
+            $this->assertEquals(
+                expected: $expectedResult,
+                actual: $result,
+                message: $message,
+            );
+        } else {
+            $this->assertSame(
+                expected: $expectedResult,
+                actual: $result,
+                message: $message,
+            );
+        }
     }
 
     #[Test]

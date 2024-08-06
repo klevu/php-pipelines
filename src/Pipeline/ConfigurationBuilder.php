@@ -89,11 +89,45 @@ class ConfigurationBuilder
             pipelineDefinition: $pipelineDefinition,
             baseDirectory: dirname($pipelineDefinitionFile),
         );
+        $pipelineOverrides = array_map(
+            fn (array $pipelineOverride): array => $this->replaceImportDirectives(
+                pipelineDefinition: $pipelineOverride,
+                baseDirectory: dirname($pipelineDefinitionFile),
+            ),
+            $pipelineOverrides,
+        );
 
         return $this->build(
             pipelineDefinition: $pipelineDefinition,
             pipelineOverrides: $pipelineOverrides,
         );
+    }
+
+    /**
+     * @param string $importFilepath
+     * @param string $baseDirectory
+     *
+     * @return string
+     * @throws InvalidPipelineConfigurationException
+     */
+    public function getImportFilePath(string $importFilepath, string $baseDirectory): string
+    {
+        if (!str_starts_with($importFilepath, DIRECTORY_SEPARATOR)) {
+            $importFilepath = rtrim($baseDirectory, DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR
+                . $importFilepath;
+        }
+        if (!is_readable($importFilepath)) {
+            throw new InvalidPipelineConfigurationException(
+                pipelineName: ConfigurationElements::IMPORT->value,
+                message: sprintf(
+                    'Cannot read import filepath: %s',
+                    $importFilepath,
+                ),
+            );
+        }
+
+        return $importFilepath;
     }
 
     /**
@@ -123,24 +157,8 @@ class ConfigurationBuilder
 
                     $importFilepath = $stageConfiguration[ConfigurationElements::IMPORT->value] ?? null;
                     if ($importFilepath) {
-                        if (!str_starts_with($importFilepath, DIRECTORY_SEPARATOR)) {
-                            $importFilepath = rtrim($baseDirectory, DIRECTORY_SEPARATOR)
-                                . DIRECTORY_SEPARATOR
-                                . $importFilepath;
-                        }
-
-                        if (!is_readable($importFilepath)) {
-                            throw new InvalidPipelineConfigurationException(
-                                pipelineName: ConfigurationElements::IMPORT->value,
-                                message: sprintf(
-                                    'Cannot read import filepath: %s',
-                                    $importFilepath,
-                                ),
-                            );
-                        }
-
                         $stageConfiguration = $this->buildFromFiles(
-                            pipelineDefinitionFile: $importFilepath,
+                            pipelineDefinitionFile: $this->getImportFilePath($importFilepath, $baseDirectory),
                         );
                         return;
                     }
@@ -155,30 +173,34 @@ class ConfigurationBuilder
                             $stages,
                         );
                     }
+                    $addStages = $stageConfiguration[ConfigurationElements::ADD_STAGES->value] ?? null;
+                    if (is_array($addStages)) {
+                        $stageConfiguration[ConfigurationElements::ADD_STAGES->value] = array_map(
+                            fn (array $addStageConfiguration): array => $this->replaceImportDirectives(
+                                pipelineDefinition: $addStageConfiguration,
+                                baseDirectory: $baseDirectory,
+                            ),
+                            $addStages,
+                        );
+                    }
                 },
+            );
+        }
+        $addStages = $pipelineDefinition[ConfigurationElements::ADD_STAGES->value] ?? null;
+        if (is_array($addStages)) {
+            $pipelineDefinition[ConfigurationElements::ADD_STAGES->value] = array_map(
+                fn (array $addStageConfiguration): array => $this->replaceImportDirectives(
+                    pipelineDefinition: $addStageConfiguration,
+                    baseDirectory: $baseDirectory,
+                ),
+                $addStages,
             );
         }
 
         $importFilepath = $pipelineDefinition[ConfigurationElements::IMPORT->value] ?? null;
         if ($importFilepath) {
-            if (!str_starts_with($importFilepath, DIRECTORY_SEPARATOR)) {
-                $importFilepath = rtrim($baseDirectory, DIRECTORY_SEPARATOR)
-                    . DIRECTORY_SEPARATOR
-                    . $importFilepath;
-            }
-
-            if (!is_readable($importFilepath)) {
-                throw new InvalidPipelineConfigurationException(
-                    pipelineName: ConfigurationElements::IMPORT->value,
-                    message: sprintf(
-                        'Cannot read import filepath: %s',
-                        $importFilepath,
-                    ),
-                );
-            }
-
             $pipelineDefinition = $this->buildFromFiles(
-                pipelineDefinitionFile: $importFilepath,
+                pipelineDefinitionFile: $this->getImportFilePath($importFilepath, $baseDirectory),
             );
         }
 
