@@ -23,17 +23,23 @@ class ConfigurationBuilder
      * @var string
      */
     private readonly string $defaultPipeline;
+    /**
+     * @var bool
+     */
+    private readonly bool $injectDefaults;
 
     /**
      * @param string|null $defaultPipeline
      */
     public function __construct(
         ?string $defaultPipeline = null,
+        bool $injectDefaults = true,
     ) {
         if (null === $defaultPipeline) {
             $defaultPipeline = 'Pipeline';
         }
         $this->defaultPipeline = $defaultPipeline;
+        $this->injectDefaults = $injectDefaults;
     }
 
     /**
@@ -214,11 +220,11 @@ class ConfigurationBuilder
     private function processStage(
         array $stageConfiguration,
     ): array {
-        if (!($stageConfiguration[ConfigurationElements::PIPELINE->value] ?? null)) {
+        if (!($stageConfiguration[ConfigurationElements::PIPELINE->value] ?? null) && $this->injectDefaults) {
             $stageConfiguration[ConfigurationElements::PIPELINE->value] = $this->defaultPipeline;
         }
 
-        if (!isset($stageConfiguration[ConfigurationElements::ARGS->value])) {
+        if (!isset($stageConfiguration[ConfigurationElements::ARGS->value]) && $this->injectDefaults) {
             $stageConfiguration[ConfigurationElements::ARGS->value] = [];
         }
 
@@ -227,7 +233,7 @@ class ConfigurationBuilder
                 [$this, 'processStage'],
                 $stageConfiguration[ConfigurationElements::STAGES->value],
             );
-        } else {
+        } elseif ($this->injectDefaults) {
             $stageConfiguration[ConfigurationElements::STAGES->value] = [];
         }
 

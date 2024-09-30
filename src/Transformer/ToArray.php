@@ -16,7 +16,7 @@ use Klevu\Pipelines\Model\ArgumentIterator;
  * Transformer to convert input data to string
  * Receives no arguments
  */
-class ToString implements TransformerInterface
+class ToArray implements TransformerInterface
 {
     use RecursiveCallTrait;
 
@@ -24,7 +24,7 @@ class ToString implements TransformerInterface
      * @param mixed $data
      * @param ArgumentIterator|null $arguments
      * @param \ArrayAccess<string|int, mixed>|null $context
-     * @return string|string[]
+     * @return mixed[]
      * @throws TransformationException
      * @throws InvalidInputDataException
      */
@@ -32,21 +32,14 @@ class ToString implements TransformerInterface
         mixed $data,
         ?ArgumentIterator $arguments = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter, Generic.Files.LineLength.TooLong, Generic.Files.LineLength.TooLong
         ?\ArrayAccess $context = null, // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
-    ): string|array {
-        if ($this->shouldCallRecursively($data)) {
-            return $this->performRecursiveCall(
-                data: (array)$data,
-                arguments: $arguments,
-                context: $context,
-            );
-        }
-
+    ): array {
         return match (true) {
-            null === $data => '',
-            is_scalar($data), $data instanceof \Stringable => (string)$data,
+            null === $data => [],
+            is_scalar($data) => [$data],
+            is_iterable($data) => $this->convertIterableToArray($data),
             default => throw new InvalidInputDataException(
                 transformerName: $this::class,
-                expectedType: 'null|scalar|\Stringable',
+                expectedType: 'null|scalar|\Traversable',
                 arguments: $arguments,
                 data: $data,
             ),
