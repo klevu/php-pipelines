@@ -2,10 +2,10 @@
     "name": "klevu/php-pipelines",
     "description": "Klevu pipeline-based conversion library",
     "type": "library",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "require": {
         "php": "~8.1|~8.2|~8.3",
-        "symfony/yaml": "^5.0|^6.0",
+        "symfony/yaml": "^5.0|^6.0|^7.0",
         "psr/container": "^1.0|^2.0",
         "psr/log": "^1.0|^2.0|^3.0"
     },
