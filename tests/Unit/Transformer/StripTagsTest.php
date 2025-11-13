@@ -12,9 +12,13 @@ declare(strict_types=1);
 
 namespace Klevu\Pipelines\Test\Unit\Transformer;
 
+use Klevu\Pipelines\Model\ArgumentIterator;
 use Klevu\Pipelines\Model\ArgumentIteratorFactory;
 use Klevu\Pipelines\Transformer\StripTags;
+use Klevu\Pipelines\Transformer\TransformerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 
 /**
  * @todo Test invalid constructor arg
@@ -532,6 +536,70 @@ class StripTagsTest extends AbstractTransformerTestCase
                     : null,
             ],
             array: $fixtures,
+        );
+    }
+
+    /**
+     * @return mixed[][]
+     */
+    public static function dataProvider_testTransform_LongTagContent(): array
+    {
+        $longContent = str_repeat('A', 10000);
+
+        return self::convertFixtures(
+            fixtures: [
+                [
+                    [
+                        sprintf('<b>%s</b>', $longContent),
+                        sprintf('<strong>%s</strong>', $longContent),
+                        sprintf('<b><strong>%s</strong> bar</b>', $longContent),
+                        sprintf('<strong><b>%s</b> bar</strong>', $longContent),
+                        sprintf('<i>%s</i>', $longContent),
+                    ],
+                    [
+                        null,
+                        ['b'],
+                    ],
+                    [
+                        '',
+                        $longContent,
+                        '',
+                        ' bar',
+                        $longContent,
+                    ],
+                ],
+            ],
+        );
+    }
+
+    /**
+     * @param mixed $data
+     * @param mixed $expectedResult
+     * @param ArgumentIterator|null $arguments
+     * @param \ArrayAccess<int|string, mixed>|null $context
+     *
+     * @return void
+     */
+    #[Test]
+    #[DataProvider('dataProvider_testTransform_LongTagContent')]
+    public function testTransform_LongTagContent(
+        mixed $data,
+        mixed $expectedResult,
+        ?ArgumentIterator $arguments = null,
+        ?\ArrayAccess $context = null,
+    ): void {
+        /** @var TransformerInterface $transformer */
+        $transformer = $this->initialiseTestObject();
+
+        $result = $transformer->transform(
+            data: $data,
+            arguments: $arguments,
+            context: $context,
+        );
+
+        $this->assertSame(
+            expected: $expectedResult,
+            actual: $result,
         );
     }
 }

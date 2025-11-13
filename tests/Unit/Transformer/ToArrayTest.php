@@ -60,7 +60,7 @@ class ToArrayTest extends AbstractTransformerTestCase
                     ['abc', 456],
                 ],
                 [
-                    new TestIterator (data: ['123', '456', 789, true]),
+                    new TestIterator(data: ['123', '456', 789, true]),
                     ['123', '456', 789, true],
                 ],
             ],
