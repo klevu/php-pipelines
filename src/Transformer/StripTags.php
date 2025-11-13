@@ -109,7 +109,7 @@ class StripTags implements TransformerInterface
         if ($stripContentForTagsArgumentValue) {
             $data = preg_replace( // phpcs:ignore Security.BadFunctions.PregReplace.PregReplaceDyn
                 pattern: sprintf(
-                    '#<((%s)[^>]*)>(.|\s)*?</\2\s*>#im',
+                    '#<((%s)[^>]*)>.*?</\2\s*>#ims',
                     implode('|', array_map('preg_quote', $stripContentForTagsArgumentValue)),
                 ),
                 replacement: '<\\1></\\1>',
@@ -117,12 +117,24 @@ class StripTags implements TransformerInterface
             );
 
             if (null === $data) {
+                $pregReplaceError = match (preg_last_error()) {
+                    PREG_NO_ERROR => 'No errors',
+                    PREG_INTERNAL_ERROR => 'Internal error',
+                    PREG_BACKTRACK_LIMIT_ERROR => 'Backtrack limit was exhausted',
+                    PREG_RECURSION_LIMIT_ERROR => 'Recursion limit was exhausted',
+                    PREG_BAD_UTF8_ERROR => 'Malformed UTF-8 data',
+                    PREG_BAD_UTF8_OFFSET_ERROR => 'Offset did not correspond to the start of a valid UTF-8 code point',
+                    PREG_JIT_STACKLIMIT_ERROR => 'JIT stack limit was exhausted',
+                    default => 'Unknown error',
+                };
+
                 throw new TransformationException(
                     transformerName: $this::class,
                     errors: [
                         sprintf(
-                            'An error occurred while stripping content for tags %s',
+                            'An error occurred while stripping content for tags %s: %s',
                             json_encode($stripContentForTagsArgumentValue),
+                            $pregReplaceError,
                         ),
                     ],
                     arguments: $arguments,
