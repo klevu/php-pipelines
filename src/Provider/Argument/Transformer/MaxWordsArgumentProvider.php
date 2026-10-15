@@ -78,7 +78,7 @@ class MaxWordsArgumentProvider
         );
 
         if (
-            (!is_int($argumentValue) && !ctype_digit($argumentValue))
+            (!is_int($argumentValue) && !(is_string($argumentValue) && ctype_digit($argumentValue)))
             || $argumentValue <= 0
         ) {
             throw new InvalidTransformationArgumentsException(

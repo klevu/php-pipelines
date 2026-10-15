@@ -96,7 +96,7 @@ class FormatNumberArgumentProvider
             $argumentValue = $this->defaultDecimals;
         }
 
-        if (!is_int($argumentValue) && !ctype_digit($argumentValue)) {
+        if (!is_int($argumentValue) && !(is_string($argumentValue) && ctype_digit($argumentValue))) {
             throw new InvalidTransformationArgumentsException(
                 transformerName: FormatNumberTransformer::class,
                 errors: [
