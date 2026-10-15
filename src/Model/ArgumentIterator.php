@@ -42,7 +42,12 @@ class ArgumentIterator implements IteratorInterface
      */
     public function current(): Argument|false
     {
-        return $this->data[$this->key()] ?? false;
+        $key = $this->key();
+        if (null === $key) {
+            return false;
+        }
+
+        return $this->data[$key] ?? false;
     }
 
     /**

@@ -38,7 +38,12 @@ class ValidationIterator implements IteratorInterface
      */
     public function current(): Validation|false
     {
-        return $this->data[$this->key()] ?? false;
+        $key = $this->key();
+        if (null === $key) {
+            return false;
+        }
+
+        return $this->data[$key] ?? false;
     }
 
     /**
